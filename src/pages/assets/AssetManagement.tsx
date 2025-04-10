@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -16,7 +15,7 @@ import {
   Plus, 
   Search,
   Filter,
-  Qrcode
+  QrCode
 } from "lucide-react";
 
 export default function AssetManagement() {
@@ -63,7 +62,7 @@ export default function AssetManagement() {
             Filter
           </Button>
           <Button variant="outline" size="sm">
-            <Qrcode className="h-4 w-4 mr-2" />
+            <QrCode className="h-4 w-4 mr-2" />
             Scan QR
           </Button>
         </div>

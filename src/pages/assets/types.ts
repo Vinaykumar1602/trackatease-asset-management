@@ -7,4 +7,10 @@ export interface Asset {
   location: string;
   assignedTo: string;
   status: string;
+  qrCodeUrl?: string;
+  purchaseDate?: string;
+  purchaseValue?: number;
+  currentValue?: number;
+  lastMaintenance?: string;
+  nextMaintenance?: string;
 }

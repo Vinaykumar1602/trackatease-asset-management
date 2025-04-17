@@ -13,24 +13,33 @@ import {
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useState } from "react";
 
 interface DeleteSaleDialogProps {
   saleId: number;
+  saleName?: string;
   onDelete?: (id: number) => void;
 }
 
-export function DeleteSaleDialog({ saleId, onDelete }: DeleteSaleDialogProps) {
+export function DeleteSaleDialog({ saleId, saleName, onDelete }: DeleteSaleDialogProps) {
   const { toast } = useToast();
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const handleDelete = () => {
-    if (onDelete) {
-      onDelete(saleId);
+    setIsDeleting(true);
+    
+    setTimeout(() => {
+      if (onDelete) {
+        onDelete(saleId);
+        
+        toast({
+          title: "Sale Deleted",
+          description: `${saleName || "The sale record"} and all associated service history have been deleted.`
+        });
+      }
       
-      toast({
-        title: "Sale Deleted",
-        description: "The sale record and all associated service history have been deleted."
-      });
-    }
+      setIsDeleting(false);
+    }, 500);
   };
 
   return (
@@ -45,12 +54,19 @@ export function DeleteSaleDialog({ saleId, onDelete }: DeleteSaleDialogProps) {
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete the sale record and all associated service history.
+            This will permanently delete {saleName || "the sale record"} and all associated service history.
+            This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          <AlertDialogAction 
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className={isDeleting ? "opacity-50 cursor-not-allowed" : ""}
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -1,10 +1,13 @@
 
+import { useState, useRef } from "react";
 import { 
   FileBarChart, 
   FileText,
   Download,
   Calendar,
-  Printer 
+  Printer,
+  Play,
+  Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,9 +18,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
+import { ReportPreviewDialog } from "./components/ReportPreviewDialog";
+
+interface ReportType {
+  title: string;
+  description: string;
+  icon: any;
+  formats: string[];
+}
 
 export default function Reports() {
-  const reportTypes = [
+  const [reportPeriods, setReportPeriods] = useState<Record<string, string>>({
+    "Asset Register": "last30",
+    "Asset Valuation Report": "last30",
+    "Inventory Movement": "last30",
+    "Inventory Valuation": "last30",
+    "AMC Expiry Report": "last30",
+    "Service History": "last30"
+  });
+
+  const [reportFormats, setReportFormats] = useState<Record<string, string>>({
+    "Asset Register": "excel",
+    "Asset Valuation Report": "excel",
+    "Inventory Movement": "excel",
+    "Inventory Valuation": "excel",
+    "AMC Expiry Report": "excel",
+    "Service History": "excel"
+  });
+
+  const [previewingReport, setPreviewingReport] = useState<ReportType | null>(null);
+  const [generating, setGenerating] = useState<Record<string, boolean>>({});
+  
+  const { toast } = useToast();
+
+  const reportTypes: ReportType[] = [
     {
       title: "Asset Register",
       description: "Complete list of all registered assets with their details",
@@ -56,6 +91,60 @@ export default function Reports() {
     }
   ];
 
+  const handlePeriodChange = (reportTitle: string, period: string) => {
+    setReportPeriods(prev => ({
+      ...prev,
+      [reportTitle]: period
+    }));
+  };
+
+  const handleFormatChange = (reportTitle: string, format: string) => {
+    setReportFormats(prev => ({
+      ...prev,
+      [reportTitle]: format
+    }));
+  };
+
+  const handlePreview = (report: ReportType) => {
+    setPreviewingReport(report);
+  };
+
+  const handleGenerate = (report: ReportType) => {
+    setGenerating(prev => ({
+      ...prev,
+      [report.title]: true
+    }));
+
+    // Simulate report generation
+    setTimeout(() => {
+      const format = reportFormats[report.title];
+      const period = reportPeriods[report.title];
+      
+      toast({
+        title: "Report Generated",
+        description: `${report.title} has been generated in ${format.toUpperCase()} format.`
+      });
+      
+      // Create a fake file download
+      const blob = new Blob([`Dummy ${report.title} data for ${period}`], { type: 'text/plain' });
+      const link = document.createElement("a");
+      
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `${report.title.replace(/\s+/g, '_').toLowerCase()}.${format}`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setGenerating(prev => ({
+        ...prev,
+        [report.title]: false
+      }));
+    }, 2000);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -78,7 +167,10 @@ export default function Reports() {
                 <div className="space-y-1">
                   <div className="font-medium text-sm">Date Range</div>
                   <div className="flex gap-2">
-                    <Select defaultValue="last30">
+                    <Select 
+                      value={reportPeriods[report.title]} 
+                      onValueChange={(value) => handlePeriodChange(report.title, value)}
+                    >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select period" />
                       </SelectTrigger>
@@ -94,7 +186,10 @@ export default function Reports() {
                 <div className="space-y-1">
                   <div className="font-medium text-sm">Format</div>
                   <div className="flex gap-2">
-                    <Select defaultValue={report.formats[0].toLowerCase()}>
+                    <Select 
+                      value={reportFormats[report.title]} 
+                      onValueChange={(value) => handleFormatChange(report.title, value)}
+                    >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select format" />
                       </SelectTrigger>
@@ -112,19 +207,41 @@ export default function Reports() {
             </CardContent>
             <CardFooter>
               <div className="flex space-x-2 w-full">
-                <Button variant="outline" className="flex-1">
+                <Button variant="outline" className="flex-1" onClick={() => handlePreview(report)}>
                   <Printer className="h-4 w-4 mr-2" />
                   Preview
                 </Button>
-                <Button className="flex-1">
-                  <Download className="h-4 w-4 mr-2" />
-                  Generate
+                <Button 
+                  className="flex-1" 
+                  onClick={() => handleGenerate(report)}
+                  disabled={generating[report.title]}
+                >
+                  {generating[report.title] ? (
+                    <>
+                      <Play className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      Generate
+                    </>
+                  )}
                 </Button>
               </div>
             </CardFooter>
           </Card>
         ))}
       </div>
+
+      {previewingReport && (
+        <ReportPreviewDialog 
+          report={previewingReport} 
+          period={reportPeriods[previewingReport.title]}
+          format={reportFormats[previewingReport.title]}
+          onClose={() => setPreviewingReport(null)}
+        />
+      )}
     </div>
   );
 }

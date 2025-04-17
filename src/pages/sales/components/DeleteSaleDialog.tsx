@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface DeleteSaleDialogProps {
   saleId: number;
@@ -19,8 +20,17 @@ interface DeleteSaleDialogProps {
 }
 
 export function DeleteSaleDialog({ saleId, onDelete }: DeleteSaleDialogProps) {
+  const { toast } = useToast();
+  
   const handleDelete = () => {
-    onDelete?.(saleId);
+    if (onDelete) {
+      onDelete(saleId);
+      
+      toast({
+        title: "Sale Deleted",
+        description: "The sale record and all associated service history have been deleted."
+      });
+    }
   };
 
   return (

@@ -13,13 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { SalesItem, ServiceFormData } from "../types";
+import { useToast } from "@/components/ui/use-toast";
+import { Wrench } from "lucide-react";
 
 interface ServiceDialogProps {
   saleItem: SalesItem;
   onSave?: (data: ServiceFormData) => void;
 }
 
-export function ServiceDialogTrigger({ saleItem }: ServiceDialogProps) {
+export function ServiceDialogTrigger({ saleItem, onSave }: ServiceDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<ServiceFormData>({
     saleId: saleItem.id,
@@ -29,6 +31,8 @@ export function ServiceDialogTrigger({ saleItem }: ServiceDialogProps) {
     partsUsed: "",
     nextServiceDue: ""
   });
+  
+  const { toast } = useToast();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -36,7 +40,25 @@ export function ServiceDialogTrigger({ saleItem }: ServiceDialogProps) {
   };
 
   const handleSubmit = () => {
-    // Handle form submission
+    if (!formData.date || !formData.technician || !formData.description) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (onSave) {
+      onSave(formData);
+    }
+    
+    toast({
+      title: "Service Record Added",
+      description: `Service record has been added for ${saleItem.productName}.`
+    });
+    
+    // Reset form and close dialog
     setIsOpen(false);
     setFormData({
       saleId: saleItem.id,
@@ -52,6 +74,7 @@ export function ServiceDialogTrigger({ saleItem }: ServiceDialogProps) {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm">
+          <Wrench className="h-4 w-4 mr-2" />
           Add Service
         </Button>
       </DialogTrigger>
@@ -65,7 +88,7 @@ export function ServiceDialogTrigger({ saleItem }: ServiceDialogProps) {
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="date">Service Date</Label>
+              <Label htmlFor="date">Service Date*</Label>
               <Input
                 id="date"
                 name="date"
@@ -75,7 +98,7 @@ export function ServiceDialogTrigger({ saleItem }: ServiceDialogProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="technician">Technician</Label>
+              <Label htmlFor="technician">Technician*</Label>
               <Input
                 id="technician"
                 name="technician"
@@ -86,7 +109,7 @@ export function ServiceDialogTrigger({ saleItem }: ServiceDialogProps) {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="description">Service Description</Label>
+            <Label htmlFor="description">Service Description*</Label>
             <Input
               id="description"
               name="description"

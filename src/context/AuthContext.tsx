@@ -26,14 +26,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Mock users for demonstration
   const mockUsers = [
-    { id: '1', name: 'Admin User', email: 'admin@tracksure.com', password: 'admin123', role: 'Admin' as const },
-    { id: '2', name: 'John Smith', email: 'john@tracksure.com', password: 'john123', role: 'Technician' as const },
-    { id: '3', name: 'Jane Doe', email: 'jane@tracksure.com', password: 'jane123', role: 'Auditor' as const }
+    { id: '1', name: 'Admin User', email: 'admin@trackatease.com', password: 'admin123', role: 'Admin' as const },
+    { id: '2', name: 'John Smith', email: 'john@trackatease.com', password: 'john123', role: 'Technician' as const },
+    { id: '3', name: 'Jane Doe', email: 'jane@trackatease.com', password: 'jane123', role: 'Auditor' as const }
   ];
 
   // Check if user is already logged in (from localStorage)
   useEffect(() => {
-    const storedUser = localStorage.getItem('tracksure_user');
+    const storedUser = localStorage.getItem('trackatease_user');
     if (storedUser) {
       try {
         setUser(JSON.parse(storedUser));
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Create a user object without the password
     const { password: _, ...userWithoutPassword } = foundUser;
     setUser(userWithoutPassword);
-    localStorage.setItem('tracksure_user', JSON.stringify(userWithoutPassword));
+    localStorage.setItem('trackatease_user', JSON.stringify(userWithoutPassword));
     
     toast({
       title: "Login Successful",
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('tracksure_user');
+    localStorage.removeItem('trackatease_user');
     toast({
       title: "Logged Out",
       description: "You have been logged out successfully"

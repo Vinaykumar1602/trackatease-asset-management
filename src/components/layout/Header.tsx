@@ -40,7 +40,7 @@ export default function Header() {
           </Button>
         </SidebarTrigger>
         <div className="flex-1 md:hidden">
-          <h1 className="text-xl font-bold tracking-tight">TrackSure</h1>
+          <h1 className="text-xl font-bold tracking-tight">Trackatease</h1>
         </div>
       </div>
       <div className={`flex items-center gap-2 md:ml-auto ${isMobile ? 'hidden' : 'flex-1'}`}>
@@ -65,7 +65,7 @@ export default function Header() {
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-primary text-white">
-                  {user ? getInitials(user.name) : 'TS'}
+                  {user ? getInitials(user.name) : 'TA'}
                 </AvatarFallback>
               </Avatar>
             </Button>

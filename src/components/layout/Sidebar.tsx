@@ -49,7 +49,7 @@ export default function SidebarNav() {
       <SidebarHeader className="flex items-center px-4 py-2">
         <div className="flex items-center gap-2 font-bold text-xl tracking-tight text-white">
           <BarChart2 className="h-6 w-6 text-primary" />
-          <span>TrackSure</span>
+          <span>Trackatease</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -92,7 +92,7 @@ export default function SidebarNav() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-4 text-xs text-white/70">
-        <p>TrackSure v1.0</p>
+        <p>Trackatease v1.0</p>
       </SidebarFooter>
     </Sidebar>
   );

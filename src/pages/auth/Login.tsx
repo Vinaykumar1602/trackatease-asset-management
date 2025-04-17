@@ -34,7 +34,7 @@ export default function Login() {
           <div className="bg-primary/10 p-4 rounded-full">
             <BarChart2 className="h-12 w-12 text-primary" />
           </div>
-          <h1 className="mt-4 text-3xl font-bold">TrackSure</h1>
+          <h1 className="mt-4 text-3xl font-bold">Trackatease</h1>
           <p className="text-muted-foreground mt-2">Asset & Inventory Management</p>
         </div>
 
@@ -88,8 +88,8 @@ export default function Login() {
         
         <div className="text-center text-sm text-muted-foreground">
           <p className="mt-4">Demo accounts:</p>
-          <p>Email: admin@tracksure.com | Password: admin123</p>
-          <p>Email: john@tracksure.com | Password: john123</p>
+          <p>Email: admin@trackatease.com | Password: admin123</p>
+          <p>Email: john@trackatease.com | Password: john123</p>
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
+import LandingPage from "./pages/landing/LandingPage";
 import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
 import NotFound from "./pages/NotFound";
@@ -29,7 +30,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/index" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/" element={
               <ProtectedRoute>

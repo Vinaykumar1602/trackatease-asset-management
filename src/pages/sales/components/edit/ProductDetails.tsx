@@ -1,3 +1,4 @@
+
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,7 +13,7 @@ interface ProductDetailsProps {
   formData: {
     productName: string;
     serialNo: string;
-    status: string;
+    status?: string;  // Made optional to match SaleFormData
   };
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleStatusChange: (value: string) => void;
@@ -53,7 +54,7 @@ export function ProductDetails({ formData, handleInputChange, handleStatusChange
       <div className="space-y-2">
         <Label htmlFor="status">Status</Label>
         <Select 
-          value={formData.status} 
+          value={formData.status || ""} 
           onValueChange={handleStatusChange}
         >
           <SelectTrigger>

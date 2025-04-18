@@ -18,10 +18,10 @@ interface ClientBranch {
 interface ClientInfoProps {
   formData: {
     client: string;
-    clientBranch: string;
-    clientBranchCode: string;
+    clientBranch?: string;  // Made optional to match SaleFormData
+    clientBranchCode?: string;  // Made optional to match SaleFormData
     contact: string;
-    location: string;
+    location?: string;  // Made optional to match SaleFormData
   };
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleBranchSelect: (branch: {name: string, code: string}) => void;
@@ -61,7 +61,7 @@ export function ClientInfo({
           <Popover open={isSearching} onOpenChange={setIsSearching}>
             <div className="flex gap-2">
               <Input
-                value={formData.clientBranch ? `${formData.clientBranch} (${formData.clientBranchCode})` : ""}
+                value={formData.clientBranch && formData.clientBranchCode ? `${formData.clientBranch} (${formData.clientBranchCode})` : ""}
                 readOnly
                 className="flex-1"
               />
@@ -116,7 +116,7 @@ export function ClientInfo({
           <Input
             id="location"
             name="location"
-            value={formData.location}
+            value={formData.location || ""}
             onChange={handleInputChange}
             placeholder="Product location"
           />

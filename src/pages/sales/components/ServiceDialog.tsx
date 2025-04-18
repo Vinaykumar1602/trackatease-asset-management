@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { SalesItem, ServiceFormData } from "../types";
 import { useToast } from "@/components/ui/use-toast";
@@ -29,12 +30,13 @@ export function ServiceDialogTrigger({ saleItem, onSave }: ServiceDialogProps) {
     technician: "",
     description: "",
     partsUsed: "",
-    nextServiceDue: ""
+    nextServiceDue: "",
+    remarks: ""
   });
   
   const { toast } = useToast();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -66,7 +68,8 @@ export function ServiceDialogTrigger({ saleItem, onSave }: ServiceDialogProps) {
       technician: "",
       description: "",
       partsUsed: "",
-      nextServiceDue: ""
+      nextServiceDue: "",
+      remarks: ""
     });
   };
 
@@ -139,6 +142,18 @@ export function ServiceDialogTrigger({ saleItem, onSave }: ServiceDialogProps) {
                 onChange={handleInputChange}
               />
             </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="remarks">Remarks</Label>
+            <Textarea
+              id="remarks"
+              name="remarks"
+              value={formData.remarks}
+              onChange={handleInputChange}
+              placeholder="Add any additional notes or remarks"
+              rows={3}
+            />
           </div>
         </div>
         <DialogFooter>

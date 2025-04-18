@@ -27,12 +27,13 @@ export function ServiceHistoryTable({ records, salesItems, compact = false }: Se
           <TableHead>Description</TableHead>
           <TableHead>Parts Used</TableHead>
           <TableHead>Next Due</TableHead>
+          <TableHead>Remarks</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {records.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={compact ? 5 : 7} className="text-center p-4 text-muted-foreground">
+            <TableCell colSpan={compact ? 6 : 8} className="text-center p-4 text-muted-foreground">
               No service records found.
             </TableCell>
           </TableRow>
@@ -55,6 +56,7 @@ export function ServiceHistoryTable({ records, salesItems, compact = false }: Se
                 <TableCell>{record.description}</TableCell>
                 <TableCell>{record.partsUsed || "None"}</TableCell>
                 <TableCell>{record.nextServiceDue}</TableCell>
+                <TableCell>{record.remarks || "-"}</TableCell>
               </TableRow>
             );
           })

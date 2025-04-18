@@ -4,12 +4,15 @@ export interface SalesItem {
   productName: string;
   serialNo: string;
   client: string;
+  clientBranch?: string;
+  clientBranchCode?: string;
   contact: string;
   saleDate: string;
   warrantyExpiry: string;
   amcStartDate: string;
   amcExpiryDate: string;
   status: string;
+  location?: string;
   lastService?: string;
   lastServiceNotes?: string;
 }
@@ -22,17 +25,22 @@ export interface ServiceRecord {
   description: string;
   partsUsed: string;
   nextServiceDue: string;
+  remarks?: string;
 }
 
 export interface SaleFormData {
   productName: string;
   serialNo: string;
   client: string;
+  clientBranch?: string; 
+  clientBranchCode?: string;
   contact: string;
   saleDate: string;
   warrantyExpiry: string;
   amcStartDate: string;
   amcExpiryDate: string;
+  location?: string;
+  status?: string;
 }
 
 export interface ServiceFormData {
@@ -42,4 +50,18 @@ export interface ServiceFormData {
   description: string;
   partsUsed: string;
   nextServiceDue: string;
+  remarks?: string;
 }
+
+export interface ClientBranch {
+  id: number;
+  clientId: number;
+  name: string;
+  code: string;
+  address: string;
+}
+
+export interface ImportFormat {
+  [key: string]: string;
+}
+

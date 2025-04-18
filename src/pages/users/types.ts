@@ -9,6 +9,10 @@ export interface User {
   lastLogin: string;
   permissions?: string[];
   password?: string;
+  phoneNumber?: string;
+  profileImage?: string;
+  dateJoined?: string;
+  twoFactorEnabled?: boolean;
 }
 
 export interface Role {
@@ -16,6 +20,9 @@ export interface Role {
   name: string;
   permissions: Permission[];
   userCount: number;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Permission {
@@ -23,4 +30,5 @@ export interface Permission {
   name: string;
   module: string;
   description: string;
+  isActive?: boolean;
 }

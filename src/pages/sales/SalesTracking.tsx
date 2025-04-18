@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Search, Filter } from "lucide-react";
@@ -27,7 +26,6 @@ import { ProductLookup } from "./components/ProductLookup";
 import { ProductDetailsDialog } from "./components/ProductDetailsDialog";
 import { SalesItem, ServiceRecord, SaleFormData, ServiceFormData, ClientBranch, ImportFormat } from "./types";
 
-// Mock client branches data
 const mockClientBranches: ClientBranch[] = [
   { id: 1, clientId: 1, name: "ABC Corporation - Main Branch", code: "ABC-001", address: "123 Corporate Blvd, City" },
   { id: 2, clientId: 1, name: "ABC Corporation - North Branch", code: "ABC-002", address: "456 Business Ave, City" },
@@ -162,7 +160,6 @@ export default function SalesTracking() {
     }
   ]);
 
-  // State for search and filter
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [viewingServiceHistory, setViewingServiceHistory] = useState(false);
@@ -249,7 +246,6 @@ export default function SalesTracking() {
     
     setServiceRecords(prev => [...prev, newRecord]);
     
-    // Update last service info in the related sales item
     setSalesItems(prev => prev.map(item => {
       if (item.id === formData.saleId) {
         return {
@@ -263,11 +259,9 @@ export default function SalesTracking() {
   };
 
   const handleProductSelected = (item: any) => {
-    // If it's a sales item
     if ((item as SalesItem).serialNo) {
       handleViewProductDetails(item as SalesItem);
     } else {
-      // If it's an asset from another module, we could convert it to a sale item
       toast({
         title: "Asset Selected",
         description: `Selected ${item.name} (${item.serial}) from Assets.`
@@ -309,7 +303,6 @@ export default function SalesTracking() {
 
   const handleImportComplete = (data: ImportFormat[], type: 'sales' | 'service') => {
     if (type === 'sales') {
-      // Process and add sales data
       const newSales = data.map((item, index) => {
         const maxId = salesItems.length > 0 ? Math.max(...salesItems.map(s => s.id)) : 0;
         return {
@@ -331,7 +324,6 @@ export default function SalesTracking() {
       
       setSalesItems(prev => [...prev, ...newSales]);
     } else {
-      // Process and add service data
       const newServices = data.map((item, index) => {
         const maxId = serviceRecords.length > 0 ? Math.max(...serviceRecords.map(s => s.id)) : 0;
         return {
@@ -348,7 +340,6 @@ export default function SalesTracking() {
       
       setServiceRecords(prev => [...prev, ...newServices]);
       
-      // Update last service info in the related sales items
       setSalesItems(prev => prev.map(item => {
         const latestService = [...serviceRecords, ...newServices]
           .filter(s => s.saleId === item.id)
@@ -371,19 +362,26 @@ export default function SalesTracking() {
     });
   };
 
-  // Filter sales items based on search query and status filter
-  const filteredSalesItems = salesItems.filter(item => 
-    (searchQuery === "" || 
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleStatusFilterChange = (status: string) => {
+    setStatusFilter(status);
+  };
+
+  const filteredSalesItems = salesItems.filter(item => {
+    const matchesSearch = searchQuery === "" || 
       item.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.serialNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.client.toLowerCase().includes(searchQuery.toLowerCase())) &&
-    (statusFilter === "All" || item.status === statusFilter)
-  );
+      item.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.clientBranch && item.clientBranch.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.clientBranchCode && item.clientBranchCode.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  // Filtered service records for a specific sale item
-  const filteredServiceRecords = serviceHistoryForItem 
-    ? serviceRecords.filter(record => record.saleId === serviceHistoryForItem)
-    : serviceRecords;
+    const matchesStatus = statusFilter === "All" || item.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="space-y-6">
@@ -418,13 +416,9 @@ export default function SalesTracking() {
               onSelect={handleProductSelected}
             />
             <div className="flex items-center gap-2 w-full md:w-auto">
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Filter
-              </Button>
               <Select
                 value={statusFilter}
-                onValueChange={setStatusFilter}
+                onValueChange={handleStatusFilterChange}
               >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Status" />
@@ -471,8 +465,7 @@ export default function SalesTracking() {
           
           <div className="border rounded-md">
             <ServiceHistoryTable 
-              records={filteredServiceRecords}
-              salesItems={salesItems}
+              records={serviceRecords}
             />
           </div>
         </TabsContent>
@@ -496,7 +489,7 @@ export default function SalesTracking() {
           <div className="py-4">
             <div className="border rounded-md">
               <ServiceHistoryTable 
-                records={filteredServiceRecords}
+                records={serviceRecords}
                 compact
               />
             </div>

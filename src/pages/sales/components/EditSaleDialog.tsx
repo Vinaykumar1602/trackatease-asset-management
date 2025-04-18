@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Edit } from "lucide-react";
 import { useState, useEffect } from "react";
-import { SaleFormData, SalesItem, Asset } from "../types";
+import { SaleFormData, SalesItem } from "../types";
 import { useToast } from "@/components/ui/use-toast";
 import { 
   Select,

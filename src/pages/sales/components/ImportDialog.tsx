@@ -16,6 +16,13 @@ import { Upload, FileUp, Check, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { ImportFormat } from "../types";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ImportDialogProps {
   type: "sales" | "service";
@@ -40,6 +47,16 @@ export function ImportDialog({ type, onImportComplete }: ImportDialogProps) {
     ? ["productName", "serialNo", "client", "clientBranch", "clientBranchCode", "contact", "saleDate", 
        "warrantyExpiry", "amcStartDate", "amcExpiryDate", "location", "status"] 
     : ["saleId", "date", "technician", "description", "partsUsed", "nextServiceDue", "remarks"];
+
+  // Function to calculate the mapped required fields
+  const calculateMappedRequiredFields = () => {
+    return requiredFields.filter(field => 
+      Object.values(mappingFields).includes(field)
+    );
+  };
+
+  // Calculate mappedRequiredFields whenever mappingFields changes
+  const mappedRequiredFields = calculateMappedRequiredFields();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -123,11 +140,9 @@ export function ImportDialog({ type, onImportComplete }: ImportDialogProps) {
 
   const handleImport = () => {
     // Check if all required fields are mapped
-    const mappedRequiredFields = requiredFields.filter(field => 
-      Object.values(mappingFields).includes(field)
-    );
+    const currentMappedRequiredFields = calculateMappedRequiredFields();
     
-    if (mappedRequiredFields.length !== requiredFields.length) {
+    if (currentMappedRequiredFields.length !== requiredFields.length) {
       toast({
         title: "Missing required fields",
         description: `Please map all required fields: ${requiredFields.join(", ")}`,

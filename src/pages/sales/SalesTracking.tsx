@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Download } from "lucide-react"; // Added missing import
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ import { ServiceHistoryTable } from "./components/ServiceHistoryTable";
 import { ProductLookup } from "./components/ProductLookup";
 import { ProductDetailsDialog } from "./components/ProductDetailsDialog";
 import { SalesHeader } from "./components/SalesHeader";
+import { ImportDialog } from "./components/ImportDialog"; // Added missing import
 import { useSalesData } from "./hooks/useSalesData";
 import { useExportData } from "./hooks/useExportData";
 import { mockClientBranches } from "./data/mockData";

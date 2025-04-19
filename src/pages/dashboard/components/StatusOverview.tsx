@@ -6,59 +6,72 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { MonitorCheck, TimerOff, Hourglass, Package, AlertCircle, Users } from "lucide-react";
+import { MonitorCheck, Wrench, Clock, AlertCircle, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface StatusItem {
   label: string;
   value: number;
   icon: React.ReactNode;
+  color: string;
 }
 
 export function StatusOverview() {
-  // These would be fetched from API in a real app
   const statusItems: StatusItem[] = [
     {
       label: "Active Assets",
-      value: 126,
-      icon: <MonitorCheck className="h-5 w-5 text-green-600" />
+      value: 220,
+      icon: <MonitorCheck className="h-5 w-5 text-green-600" />,
+      color: "text-green-600"
     },
     {
       label: "Assets Under Repair",
-      value: 8,
-      icon: <TimerOff className="h-5 w-5 text-amber-600" />
+      value: 18,
+      icon: <Wrench className="h-5 w-5 text-amber-600" />,
+      color: "text-amber-600"
     },
     {
       label: "Pending Services",
-      value: 15,
-      icon: <Hourglass className="h-5 w-5 text-blue-600" />
+      value: 7,
+      icon: <Clock className="h-5 w-5 text-blue-600" />,
+      color: "text-blue-600"
     },
     {
       label: "Low Stock Items",
       value: 12,
-      icon: <AlertCircle className="h-5 w-5 text-red-600" />
+      icon: <AlertCircle className="h-5 w-5 text-red-600" />,
+      color: "text-red-600"
     },
     {
       label: "Active Users",
-      value: 24,
-      icon: <Users className="h-5 w-5 text-purple-600" />
+      value: 20,
+      icon: <Users className="h-5 w-5 text-purple-600" />,
+      color: "text-purple-600"
     }
   ];
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Status Overview</CardTitle>
-        <CardDescription>Current system status at a glance</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-xl">Status Overview</CardTitle>
+          <CardDescription>Current system status</CardDescription>
+        </div>
+        <Button variant="ghost" className="px-0 h-auto py-0 hover:bg-transparent">
+          View All Reports →
+        </Button>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="space-y-4">
           {statusItems.map((item, index) => (
-            <div key={index} className="flex flex-col items-center justify-center p-4 border rounded-md bg-card hover:bg-accent/50 transition-colors">
-              <div className="rounded-full bg-background p-2 mb-2">
-                {item.icon}
+            <div key={index} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full p-2 bg-background">
+                  {item.icon}
+                </div>
+                <span className="font-medium">{item.label}</span>
               </div>
-              <div className="text-2xl font-bold">{item.value}</div>
-              <div className="text-xs text-center text-muted-foreground">{item.label}</div>
+              <span className={`font-bold ${item.color}`}>{item.value}</span>
             </div>
           ))}
         </div>

@@ -1,56 +1,51 @@
 
 import { 
   Card, 
-  CardContent, 
-  CardFooter,
+  CardContent,
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { Package, Calendar, ShieldAlert, BadgeAlert, TrendingUp, TrendingDown } from "lucide-react";
+import { Package, Database, ShoppingCart, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface StatCardProps {
   title: string;
   value: string | number;
-  subtitle?: string;
+  subtitle: string;
   icon: React.ReactNode;
   trend?: {
     value: number;
     isPositive: boolean;
   };
+  onClick?: () => void;
 }
 
-function StatCard({ title, value, subtitle, icon, trend }: StatCardProps) {
+function StatCard({ title, value, subtitle, icon, trend, onClick }: StatCardProps) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        <div className="h-8 w-8 rounded-full bg-primary/10 p-1.5 text-primary">
+    <Card className="relative">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
           {icon}
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        {subtitle && (
-          <p className="text-xs text-muted-foreground">{subtitle}</p>
-        )}
-      </CardContent>
-      {trend && (
-        <CardFooter>
-          <div className="flex items-center text-xs">
-            {trend.isPositive ? (
-              <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-            ) : (
-              <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
-            )}
-            <span className={trend.isPositive ? "text-green-600" : "text-red-600"}>
+        <div className="text-3xl font-bold">{value}</div>
+        <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+        {trend && (
+          <div className="flex items-center text-xs mt-2">
+            <span className={trend.isPositive ? "text-green-600" : "text-destructive"}>
               {trend.isPositive ? "+" : "-"}{Math.abs(trend.value)}%
             </span>
-            <span className="text-muted-foreground ml-1">from previous month</span>
           </div>
-        </CardFooter>
-      )}
+        )}
+        <Button
+          variant="ghost"
+          className="absolute bottom-2 right-2 px-0 h-auto py-0 hover:bg-transparent"
+          onClick={onClick}
+        >
+          View Details →
+        </Button>
+      </CardContent>
     </Card>
   );
 }
@@ -60,35 +55,35 @@ export function DashboardStats() {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <StatCard
         title="Total Assets"
-        value="152"
-        subtitle="126 active assets"
-        icon={<Package className="h-5 w-5" />}
+        value="248"
+        subtitle="220 active"
+        icon={<Database className="h-6 w-6 text-primary" />}
         trend={{
           value: 12,
           isPositive: true
         }}
+        onClick={() => console.log("Navigate to assets page")}
       />
       <StatCard
         title="Inventory Alerts"
         value="12"
-        subtitle="Items below minimum level"
-        icon={<ShieldAlert className="h-5 w-5" />}
-        trend={{
-          value: 5,
-          isPositive: false
-        }}
+        subtitle="items below min level"
+        icon={<Package className="h-6 w-6 text-red-500" />}
+        onClick={() => console.log("Navigate to inventory page")}
       />
       <StatCard
         title="Active AMCs"
-        value="37"
-        subtitle="8 expiring soon"
-        icon={<BadgeAlert className="h-5 w-5" />}
+        value="42"
+        subtitle="5 expiring soon"
+        icon={<ShoppingCart className="h-6 w-6 text-green-500" />}
+        onClick={() => console.log("Navigate to AMC page")}
       />
       <StatCard
         title="Upcoming Services"
         value="15"
-        subtitle="Scheduled in next 7 days"
-        icon={<Calendar className="h-5 w-5" />}
+        subtitle="within next 7 days"
+        icon={<Calendar className="h-6 w-6 text-purple-500" />}
+        onClick={() => console.log("Navigate to services page")}
       />
     </div>
   );

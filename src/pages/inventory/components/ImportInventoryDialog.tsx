@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Upload, FileText, CheckCircle2, AlertCircle } from "lucide-react";
-import { InventoryItem } from "../InventoryTracking";
+import { InventoryItem } from "./AddInventoryItemDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { Progress } from "@/components/ui/progress";
 

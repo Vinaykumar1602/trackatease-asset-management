@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SalesTable } from "./components/SalesTable";
 import { ServiceHistoryTable } from "./components/ServiceHistoryTable";
-import { ProductLookupWithQR } from "./components/ProductLookupWithQR";
+import { ProductLookupWithQR, Product } from "./components/ProductLookupWithQR";
 import { ProductDetailsDialog } from "./components/ProductDetailsDialog";
 import { SalesHeader } from "./components/SalesHeader";
 import { ImportDialog } from "./components/ImportDialog"; 
@@ -48,6 +48,7 @@ export default function SalesTracking() {
   const [serviceHistoryForItem, setServiceHistoryForItem] = useState<number | null>(null);
   const [viewingProductDetails, setViewingProductDetails] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<SalesItem | null>(null);
+  const [productLookupOpen, setProductLookupOpen] = useState(false);
 
   const handleViewServiceHistory = (id: number) => {
     setServiceHistoryForItem(id);
@@ -60,6 +61,7 @@ export default function SalesTracking() {
   };
 
   const handleProductSelected = (item: any) => {
+    setProductLookupOpen(false);
     if ((item as SalesItem).serialNo) {
       handleViewProductDetails(item as SalesItem);
     }
@@ -68,6 +70,14 @@ export default function SalesTracking() {
   const handleStatusFilterChange = (status: string) => {
     setStatusFilter(status);
   };
+
+  // Convert salesItems to format expected by ProductLookupWithQR
+  const productsForLookup: Product[] = salesItems.map(item => ({
+    id: String(item.id),
+    name: item.productName,
+    sku: item.serialNo,
+    // Add any other required properties
+  }));
 
   const filteredSalesItems = salesItems.filter(item => {
     const matchesSearch = searchQuery === "" || 
@@ -97,9 +107,14 @@ export default function SalesTracking() {
       
         <TabsContent value="sales" className="space-y-4">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <Button variant="outline" onClick={() => setProductLookupOpen(true)}>
+              Search Products with QR
+            </Button>
             <ProductLookupWithQR
-              salesItems={salesItems}
+              open={productLookupOpen}
+              onClose={() => setProductLookupOpen(false)}
               onSelect={handleProductSelected}
+              products={productsForLookup}
             />
             <div className="flex items-center gap-2 w-full md:w-auto">
               <Select

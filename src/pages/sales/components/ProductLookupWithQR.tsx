@@ -1,19 +1,28 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Product } from "@/types";
 import { QrScanDialog } from "./QrScanDialog";
 import { toast } from "@/components/ui/use-toast";
+
+// Define Product interface locally instead of importing from @/types
+export interface Product {
+  id: string;
+  name: string;
+  sku: string;
+  // Add other properties as needed
+}
 
 interface ProductLookupProps {
   open: boolean;
   onClose: () => void;
   onSelect: (product: Product) => void;
   products: Product[];
+  salesItems?: any[];
 }
 
-export function ProductLookupWithQR({ open, onClose, onSelect, products }: ProductLookupProps) {
+export function ProductLookupWithQR({ open, onClose, onSelect, products, salesItems }: ProductLookupProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
 

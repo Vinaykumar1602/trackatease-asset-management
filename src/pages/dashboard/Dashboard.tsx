@@ -118,11 +118,9 @@ export default function Dashboard() {
         <div className="col-span-1 md:col-span-2 lg:col-span-4">
           <StatCard
             title="Response Time"
-            subtitle="Average time to respond to service requests"
-            metricValue="4.2 hours"
+            value="4.2 hours"
+            description="Lower than last month"
             metricChange="-12%"
-            status="success"
-            helperText="Lower than last month"
             chartData={[10, 20, 15, 25, 18, 12, 8]}
           />
         </div>

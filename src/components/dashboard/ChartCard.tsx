@@ -5,17 +5,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 interface ChartCardProps {
   title: string;
   description?: string;
-  children: ReactNode;
+  chart?: ReactNode;
+  children?: ReactNode;
 }
 
-export default function ChartCard({ title, description, children }: ChartCardProps) {
+export default function ChartCard({ title, description, chart, children }: ChartCardProps) {
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      <CardContent>{chart || children}</CardContent>
     </Card>
   );
 }

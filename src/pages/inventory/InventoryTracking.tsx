@@ -28,19 +28,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AddInventoryItemDialog } from "./components/AddInventoryItemDialog";
+import { AddInventoryItemDialog, InventoryItem } from "./components/AddInventoryItemDialog";
 import { ImportInventoryDialog } from "./components/ImportInventoryDialog";
-
-export interface InventoryItem {
-  id: number;
-  name: string;
-  sku: string;
-  category: string;
-  quantity: number;
-  minLevel: number;
-  location: string;
-  status: "In Stock" | "Low Stock" | "Out of Stock";
-}
 
 export default function InventoryTracking() {
   // State for inventory items
@@ -214,6 +203,9 @@ export default function InventoryTracking() {
   const outOfStockCount = inventoryItems.filter(item => item.status === "Out of Stock").length;
   const totalItems = inventoryItems.length;
 
+  // Dialog state
+  const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -234,13 +226,21 @@ export default function InventoryTracking() {
             Export
           </Button>
           <ImportInventoryDialog onImportComplete={handleImportItems} />
-          <AddInventoryItemDialog 
-            onAddItem={handleAddItem}
-            categories={categories.filter(c => c !== "All")}
-            locations={locations.filter(l => l !== "All")}
-          />
+          <Button size="sm" onClick={() => setAddItemDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Item
+          </Button>
         </div>
       </div>
+
+      {/* Add Item Dialog */}
+      <AddInventoryItemDialog 
+        open={addItemDialogOpen}
+        setOpen={setAddItemDialogOpen}
+        onSave={handleAddItem}
+        categories={categories.filter(c => c !== "All")}
+        locations={locations.filter(l => l !== "All")}
+      />
 
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="relative w-full md:w-72">

@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,9 +22,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { InventoryItem } from "@/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
+
+// Define InventoryItem type directly here instead of importing from @/types
+export interface InventoryItem {
+  id: number;
+  name: string;
+  sku: string;
+  category: string;
+  quantity: number;
+  minLevel: number;
+  location: string;
+  status: "In Stock" | "Low Stock" | "Out of Stock";
+}
 
 const formSchema = z.object({
   sku: z.string().min(2, {
@@ -40,9 +52,19 @@ interface AddInventoryItemDialogProps {
   open: boolean;
   setOpen: (open: boolean) => void;
   onSave: (item: Omit<InventoryItem, "id" | "status">) => void;
+  onAddItem?: (item: Omit<InventoryItem, "id" | "status">) => void;
+  categories?: string[];
+  locations?: string[];
 }
 
-export function AddInventoryItemDialog({ open, setOpen, onSave }: AddInventoryItemDialogProps) {
+export function AddInventoryItemDialog({ 
+  open, 
+  setOpen, 
+  onSave, 
+  onAddItem, 
+  categories = ["Electronics", "Furniture", "Stationery", "Appliances"], 
+  locations = ["Warehouse A", "Warehouse B", "Store Front", "Storage Unit"] 
+}: AddInventoryItemDialogProps) {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -59,6 +81,8 @@ export function AddInventoryItemDialog({ open, setOpen, onSave }: AddInventoryIt
   });
 
   const handleSave = (data: z.infer<typeof formSchema>) => {
+    setIsSaving(true);
+    
     const newItem: Omit<InventoryItem, "id" | "status"> = {
       sku: data.sku,
       name: data.name || "", // Ensure name is not optional
@@ -68,7 +92,14 @@ export function AddInventoryItemDialog({ open, setOpen, onSave }: AddInventoryIt
       minLevel: data.minLevel || 0
     };
     
-    onSave(newItem);
+    // Call the appropriate handler function
+    if (onAddItem) {
+      onAddItem(newItem);
+    } else {
+      onSave(newItem);
+    }
+    
+    setIsSaving(false);
     setOpen(false);
   };
 
@@ -121,10 +152,9 @@ export function AddInventoryItemDialog({ open, setOpen, onSave }: AddInventoryIt
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Electronics">Electronics</SelectItem>
-                        <SelectItem value="Furniture">Furniture</SelectItem>
-                        <SelectItem value="Stationery">Stationery</SelectItem>
-                        <SelectItem value="Appliances">Appliances</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category} value={category}>{category}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </FormControl>
@@ -147,10 +177,9 @@ export function AddInventoryItemDialog({ open, setOpen, onSave }: AddInventoryIt
                         <SelectValue placeholder="Select a location" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Warehouse A">Warehouse A</SelectItem>
-                        <SelectItem value="Warehouse B">Warehouse B</SelectItem>
-                        <SelectItem value="Store Front">Store Front</SelectItem>
-                        <SelectItem value="Storage Unit">Storage Unit</SelectItem>
+                        {locations.map((location) => (
+                          <SelectItem key={location} value={location}>{location}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </FormControl>
@@ -168,7 +197,12 @@ export function AddInventoryItemDialog({ open, setOpen, onSave }: AddInventoryIt
                 <FormItem>
                   <FormLabel>Quantity</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="Enter Quantity" {...field} />
+                    <Input 
+                      type="number"
+                      placeholder="Enter Quantity" 
+                      {...field} 
+                      onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -181,7 +215,12 @@ export function AddInventoryItemDialog({ open, setOpen, onSave }: AddInventoryIt
                 <FormItem>
                   <FormLabel>Minimum Level</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="Enter Minimum Level" {...field} />
+                    <Input 
+                      type="number" 
+                      placeholder="Enter Minimum Level" 
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

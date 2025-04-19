@@ -57,7 +57,7 @@ export default function ServiceManagement() {
       client: "ABC Corporation", 
       product: "Server System X1",
       serialNo: "SRV-X1-2023-001", 
-      scheduledDate: "Jul 15, 2023",
+      scheduledDate: "2023-07-15",
       technician: "Mike Johnson",
       status: "Scheduled",
       slaStatus: "Within SLA"
@@ -67,7 +67,7 @@ export default function ServiceManagement() {
       client: "XYZ Inc", 
       product: "Network Switch N500",
       serialNo: "NSW-N500-2023-002", 
-      scheduledDate: "Jul 17, 2023",
+      scheduledDate: "2023-07-17",
       technician: "Sarah Wilson",
       status: "Pending",
       slaStatus: "Within SLA"
@@ -77,7 +77,7 @@ export default function ServiceManagement() {
       client: "123 Solutions", 
       product: "Security Camera System",
       serialNo: "CAM-S1-2023-003", 
-      scheduledDate: "Jul 10, 2023",
+      scheduledDate: "2023-07-10",
       technician: "David Brown",
       status: "Completed",
       slaStatus: "Met"
@@ -87,7 +87,7 @@ export default function ServiceManagement() {
       client: "City Mall", 
       product: "Digital Signage System",
       serialNo: "DSS-2022-004", 
-      scheduledDate: "Jul 05, 2023",
+      scheduledDate: "2023-07-05",
       technician: "Unassigned",
       status: "Overdue",
       slaStatus: "SLA Violated"
@@ -150,7 +150,6 @@ export default function ServiceManagement() {
     });
   };
   
-  // Handle editing a service
   const handleEditService = (updatedService: ServiceItem) => {
     setServiceItems(prev => prev.map(item => 
       item.id === updatedService.id ? updatedService : item
@@ -183,7 +182,6 @@ export default function ServiceManagement() {
     });
   };
   
-  // Handle marking a service as complete
   const handleCompleteService = (id: number) => {
     setServiceItems(prev => prev.map(item => 
       item.id === id 
@@ -216,7 +214,6 @@ export default function ServiceManagement() {
     });
   };
   
-  // Export services to CSV
   const handleExportServices = () => {
     const headers = ["ID", "Client", "Product", "Serial No", "Scheduled Date", "Technician", "Status", "SLA Status"];
     const csvContent = [
@@ -244,7 +241,6 @@ export default function ServiceManagement() {
     });
   };
   
-  // Import services from CSV
   const handleImportServices = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -293,13 +289,21 @@ export default function ServiceManagement() {
     }
   };
   
-  // Handle view service details
   const handleViewService = (id: number) => {
     const service = serviceItems.find(item => item.id === id);
     if (service) {
       setEditingService(service);
     }
   };
+
+  // Convert ServiceItems to format needed by ServiceCalendarView
+  const servicesForCalendar = serviceItems.map(item => ({
+    id: String(item.id),
+    assetId: String(item.id),
+    scheduledDate: item.scheduledDate,
+    description: item.product,
+    status: item.status.toLowerCase() as 'scheduled' | 'in progress' | 'completed' | 'cancelled'
+  }));
   
   // Filter service items based on search query and status filter
   const filteredServiceItems = serviceItems.filter(item => {
@@ -468,8 +472,8 @@ export default function ServiceManagement() {
         </div>
       ) : (
         <ServiceCalendarView 
-          serviceItems={filteredServiceItems} 
-          onServiceClick={handleViewService} 
+          services={servicesForCalendar}
+          onServiceClick={handleViewService}
         />
       )}
 

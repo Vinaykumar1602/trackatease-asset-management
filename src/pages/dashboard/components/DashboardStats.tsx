@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Package, Database, ShoppingCart, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface StatCardProps {
   title: string;
@@ -50,40 +51,82 @@ function StatCard({ title, value, subtitle, icon, trend, onClick }: StatCardProp
   );
 }
 
-export function DashboardStats() {
+interface DashboardStatsProps {
+  timeFilter: "week" | "month" | "year";
+}
+
+export function DashboardStats({ timeFilter }: DashboardStatsProps) {
+  const navigate = useNavigate();
+  
+  // In a real app, these values would change based on the timeFilter
+  const statsData = {
+    week: {
+      assets: "248",
+      inventory: "12",
+      amc: "42",
+      services: "15"
+    },
+    month: {
+      assets: "310",
+      inventory: "24",
+      amc: "65",
+      services: "28"
+    },
+    year: {
+      assets: "582",
+      inventory: "76",
+      amc: "138",
+      services: "94"
+    }
+  };
+  
+  const currentStats = statsData[timeFilter];
+  
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <StatCard
         title="Total Assets"
-        value="248"
+        value={currentStats.assets}
         subtitle="220 active"
         icon={<Database className="h-6 w-6 text-primary" />}
         trend={{
           value: 12,
           isPositive: true
         }}
-        onClick={() => console.log("Navigate to assets page")}
+        onClick={() => {
+          console.log("Navigate to assets page");
+          navigate("/assets");
+        }}
       />
       <StatCard
         title="Inventory Alerts"
-        value="12"
+        value={currentStats.inventory}
         subtitle="items below min level"
         icon={<Package className="h-6 w-6 text-red-500" />}
-        onClick={() => console.log("Navigate to inventory page")}
+        onClick={() => {
+          console.log("Navigate to inventory page");
+          navigate("/inventory");
+        }}
       />
       <StatCard
         title="Active AMCs"
-        value="42"
+        value={currentStats.amc}
         subtitle="5 expiring soon"
         icon={<ShoppingCart className="h-6 w-6 text-green-500" />}
-        onClick={() => console.log("Navigate to AMC page")}
+        onClick={() => {
+          console.log("Navigate to AMC page");
+          navigate("/sales");
+        }}
       />
       <StatCard
         title="Upcoming Services"
-        value="15"
+        value={currentStats.services}
         subtitle="within next 7 days"
         icon={<Calendar className="h-6 w-6 text-purple-500" />}
-        onClick={() => console.log("Navigate to services page")}
+        onClick={() => {
+          console.log("Navigate to services page");
+          navigate("/service");
+        }}
       />
     </div>
   );

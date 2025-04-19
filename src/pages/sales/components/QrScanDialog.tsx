@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { toast } from "@/components/ui/use-toast";
 
 interface QrScanDialogProps {
   open: boolean;
@@ -16,11 +17,13 @@ export function QrScanDialog({ open, onClose, onScan }: QrScanDialogProps) {
   const qrBoxRef = useRef<HTMLDivElement>(null);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [scanInProgress, setScanInProgress] = useState(false);
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   useEffect(() => {
     if (open && qrBoxRef.current) {
       try {
+        setScanInProgress(true);
         // Only initialize scanner when dialog is open and element exists
         const qrBoxId = "qr-reader";
         
@@ -37,11 +40,25 @@ export function QrScanDialog({ open, onClose, onScan }: QrScanDialogProps) {
           {
             fps: 10,
             qrbox: 250,
-            // Use correct format specifiers
+            // Support all common formats
             formatsToSupport: [
               0, // QR_CODE
               1, // AZTEC
               2, // CODABAR
+              3, // CODE_39
+              4, // CODE_93
+              5, // CODE_128
+              6, // DATA_MATRIX
+              7, // MAXICODE
+              8, // ITF
+              9, // EAN_13
+              10, // EAN_8
+              11, // PDF_417
+              12, // RSS_14
+              13, // RSS_EXPANDED
+              14, // UPC_A
+              15, // UPC_E
+              16, // UPC_EAN_EXTENSION
             ]
           },
           false
@@ -49,6 +66,11 @@ export function QrScanDialog({ open, onClose, onScan }: QrScanDialogProps) {
 
         scannerRef.current.render(
           (decodedText) => {
+            console.log("QR Code scanned successfully:", decodedText);
+            toast({
+              title: "QR Code Scanned",
+              description: `Successfully scanned code: ${decodedText.substring(0, 20)}...`,
+            });
             onScan(decodedText);
             onClose();
           },
@@ -60,6 +82,11 @@ export function QrScanDialog({ open, onClose, onScan }: QrScanDialogProps) {
         console.error("Error initializing QR scanner:", error);
         setHasError(true);
         setErrorMessage("Failed to initialize camera. Please make sure camera access is allowed.");
+        toast({
+          variant: "destructive",
+          title: "Camera Error",
+          description: "Failed to initialize camera. Please check permissions.",
+        });
       }
     }
 
@@ -68,6 +95,7 @@ export function QrScanDialog({ open, onClose, onScan }: QrScanDialogProps) {
       if (scannerRef.current) {
         try {
           scannerRef.current.clear();
+          setScanInProgress(false);
         } catch (error) {
           console.error("Error clearing scanner:", error);
         }
@@ -94,6 +122,11 @@ export function QrScanDialog({ open, onClose, onScan }: QrScanDialogProps) {
             <div className="text-center text-sm text-muted-foreground mt-4">
               Position the QR code within the box to scan
             </div>
+            {scanInProgress && (
+              <div className="mt-2 text-center text-sm text-blue-600">
+                Scanner active. Please allow camera access if prompted.
+              </div>
+            )}
           </div>
         )}
         

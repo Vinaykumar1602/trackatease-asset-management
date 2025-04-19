@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -32,9 +31,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DeleteUserDialog } from "./components/DeleteUserDialog";
 
 export default function UsersManagement() {
-  // Users data with state
   const [users, setUsers] = useState<User[]>([
     { 
       id: 1, 
@@ -88,16 +87,15 @@ export default function UsersManagement() {
     }
   ]);
 
-  // State for search and filters
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Add new user
   const handleAddUser = (userData: Omit<User, "id" | "lastLogin">) => {
     const id = users.length > 0 ? Math.max(...users.map(user => user.id)) + 1 : 1;
     const currentDate = new Date();
@@ -123,7 +121,6 @@ export default function UsersManagement() {
     });
   };
 
-  // Update existing user
   const handleUpdateUser = (updatedUser: User) => {
     setUsers(prev => prev.map(user => 
       user.id === updatedUser.id ? updatedUser : user
@@ -131,7 +128,6 @@ export default function UsersManagement() {
     setEditingUser(null);
   };
 
-  // Export users to CSV
   const handleExportUsers = () => {
     const headers = ["ID", "Name", "Email", "Role", "Department", "Status", "Last Login"];
     const csvContent = [
@@ -159,7 +155,6 @@ export default function UsersManagement() {
     });
   };
 
-  // Import users from CSV
   const handleImportUsers = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -170,7 +165,6 @@ export default function UsersManagement() {
         const text = event.target?.result as string;
         const rows = text.split('\n').filter(row => row.trim());
         
-        // Skip header row
         const importedUsers = rows.slice(1).map(row => {
           const values = row.split(',');
           return {
@@ -185,7 +179,6 @@ export default function UsersManagement() {
           };
         });
         
-        // Filter out users with missing required data
         const validUsers = importedUsers.filter(user => user.name && user.email);
         
         setUsers(prev => [...prev, ...validUsers]);
@@ -204,25 +197,30 @@ export default function UsersManagement() {
     };
     reader.readAsText(file);
     
-    // Clear the input
     if (e.target) {
       e.target.value = "";
     }
   };
 
-  // Filter users based on search query and filters
+  const handleDeleteUser = (userId: number) => {
+    setUsers(prev => prev.filter(user => user.id !== userId));
+    setDeletingUser(null);
+    
+    toast({
+      title: "User Deleted",
+      description: "The user has been permanently deleted."
+    });
+  };
+
   const filteredUsers = users.filter(user => {
-    // Search filter
     const matchesSearch = 
       searchQuery === "" || 
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.department.toLowerCase().includes(searchQuery.toLowerCase());
       
-    // Role filter
     const matchesRole = roleFilter === "All" || user.role === roleFilter;
     
-    // Status filter
     const matchesStatus = statusFilter === "All" || user.status === statusFilter;
     
     return matchesSearch && matchesRole && matchesStatus;
@@ -359,9 +357,10 @@ export default function UsersManagement() {
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => setEditingUser(user)}
+                      onClick={() => setDeletingUser(user)}
+                      className="text-destructive hover:text-destructive"
                     >
-                      Permissions
+                      Delete
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -376,6 +375,14 @@ export default function UsersManagement() {
           user={editingUser}
           onSave={handleUpdateUser}
           onCancel={() => setEditingUser(null)}
+        />
+      )}
+
+      {deletingUser && (
+        <DeleteUserDialog
+          user={deletingUser}
+          onDelete={handleDeleteUser}
+          onCancel={() => setDeletingUser(null)}
         />
       )}
     </div>

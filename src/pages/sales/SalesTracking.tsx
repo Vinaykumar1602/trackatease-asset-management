@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +27,8 @@ import { useSalesData } from "./hooks/useSalesData";
 import { useExportData } from "./hooks/useExportData";
 import { mockClientBranches } from "./data/mockData";
 import { SalesItem } from "./types";
+import { Search, Filter } from "lucide-react";
+import { SalesFilters } from "./components/SalesFilters";
 
 export default function SalesTracking() {
   const {
@@ -43,7 +44,10 @@ export default function SalesTracking() {
   const { exportToCSV } = useExportData(salesItems, serviceRecords);
   
   const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState("All");
+  const [clientFilter, setClientFilter] = useState("All");
+  const [warrantyFilter, setWarrantyFilter] = useState("All");
   const [viewingServiceHistory, setViewingServiceHistory] = useState(false);
   const [serviceHistoryForItem, setServiceHistoryForItem] = useState<number | null>(null);
   const [viewingProductDetails, setViewingProductDetails] = useState(false);
@@ -67,10 +71,6 @@ export default function SalesTracking() {
     }
   };
 
-  const handleStatusFilterChange = (status: string) => {
-    setStatusFilter(status);
-  };
-
   // Convert salesItems to format expected by ProductLookupWithQR
   const productsForLookup: Product[] = salesItems.map(item => ({
     id: String(item.id),
@@ -79,17 +79,18 @@ export default function SalesTracking() {
     // Add any other required properties
   }));
 
+  // Update filtered sales items logic
   const filteredSalesItems = salesItems.filter(item => {
     const matchesSearch = searchQuery === "" || 
       item.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.serialNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.clientBranch && item.clientBranch.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (item.clientBranchCode && item.clientBranchCode.toLowerCase().includes(searchQuery.toLowerCase()));
-
+      item.client.toLowerCase().includes(searchQuery.toLowerCase());
+      
     const matchesStatus = statusFilter === "All" || item.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
+    const matchesClient = clientFilter === "All" || item.client === clientFilter;
+    const matchesWarranty = warrantyFilter === "All" || item.warrantyStatus === warrantyFilter;
+    
+    return matchesSearch && matchesStatus && matchesClient && matchesWarranty;
   });
 
   return (
@@ -119,7 +120,7 @@ export default function SalesTracking() {
             <div className="flex items-center gap-2 w-full md:w-auto">
               <Select
                 value={statusFilter}
-                onValueChange={handleStatusFilterChange}
+                onValueChange={(value) => setStatusFilter(value)}
               >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Status" />
@@ -135,6 +136,41 @@ export default function SalesTracking() {
               </Select>
             </div>
           </div>
+
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input 
+                type="search" 
+                placeholder="Search sales..." 
+                className="pl-8 w-full" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                {showFilters ? "Hide Filters" : "Show Filters"}
+              </Button>
+            </div>
+          </div>
+
+          {showFilters && (
+            <SalesFilters 
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              clientFilter={clientFilter}
+              setClientFilter={setClientFilter}
+              warrantyFilter={warrantyFilter}
+              setWarrantyFilter={setWarrantyFilter}
+              salesItems={salesItems}
+            />
+          )}
 
           <div className="border rounded-md">
             <SalesTable 

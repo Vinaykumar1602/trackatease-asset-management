@@ -31,6 +31,7 @@ export function ProductLookup({ salesItems, assets = [], onSelect }: ProductLook
   const [results, setResults] = useState<Array<SalesItem | Asset>>([]);
   const [showQrScanner, setShowQrScanner] = useState(false);
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const scannerContainerRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -72,22 +73,9 @@ export function ProductLookup({ salesItems, assets = [], onSelect }: ProductLook
 
   // Initialize QR scanner when dialog is shown
   useEffect(() => {
-    if (showQrScanner) {
+    if (showQrScanner && scannerContainerRef.current) {
       // Small timeout to ensure the DOM element is available
       const initScanner = setTimeout(() => {
-        // Check if the element exists before creating scanner
-        const qrElement = document.getElementById("qr-reader");
-        if (!qrElement) {
-          console.error("QR reader element not found");
-          setShowQrScanner(false);
-          toast({
-            title: "QR Scanner Error",
-            description: "Could not initialize QR scanner",
-            variant: "destructive"
-          });
-          return;
-        }
-        
         try {
           scannerRef.current = new Html5QrcodeScanner(
             "qr-reader",
@@ -96,9 +84,16 @@ export function ProductLookup({ salesItems, assets = [], onSelect }: ProductLook
           );
           
           scannerRef.current.render((decodedText) => {
+            // Successfully scanned QR code
             setSearchTerm(decodedText);
             setShowQrScanner(false);
+            
+            toast({
+              title: "QR Code Scanned",
+              description: `Searching for: ${decodedText}`,
+            });
           }, (error) => {
+            // Error occurs during scanning
             console.warn(`QR Code scanning failed: ${error}`);
           });
         } catch (error) {
@@ -108,8 +103,9 @@ export function ProductLookup({ salesItems, assets = [], onSelect }: ProductLook
             description: "Could not initialize QR scanner",
             variant: "destructive"
           });
+          setShowQrScanner(false);
         }
-      }, 300); // Small delay to ensure DOM is ready
+      }, 500); // Slightly longer delay to ensure DOM is ready
       
       return () => {
         clearTimeout(initScanner);
@@ -218,7 +214,7 @@ export function ProductLookup({ salesItems, assets = [], onSelect }: ProductLook
           <DialogHeader>
             <DialogTitle>Scan QR Code</DialogTitle>
           </DialogHeader>
-          <div id="qr-reader" className="w-full h-64 mx-auto" />
+          <div id="qr-reader" className="w-full h-64 mx-auto" ref={scannerContainerRef} />
         </DialogContent>
       </Dialog>
     </>

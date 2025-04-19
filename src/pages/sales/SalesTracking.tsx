@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download } from "lucide-react"; // Added missing import
+import { Download } from "lucide-react"; 
 import {
   Dialog,
   DialogContent,
@@ -20,10 +20,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SalesTable } from "./components/SalesTable";
 import { ServiceHistoryTable } from "./components/ServiceHistoryTable";
-import { ProductLookup } from "./components/ProductLookup";
+import { ProductLookupWithQR } from "./components/ProductLookupWithQR";
 import { ProductDetailsDialog } from "./components/ProductDetailsDialog";
 import { SalesHeader } from "./components/SalesHeader";
-import { ImportDialog } from "./components/ImportDialog"; // Added missing import
+import { ImportDialog } from "./components/ImportDialog"; 
 import { useSalesData } from "./hooks/useSalesData";
 import { useExportData } from "./hooks/useExportData";
 import { mockClientBranches } from "./data/mockData";
@@ -97,7 +97,7 @@ export default function SalesTracking() {
       
         <TabsContent value="sales" className="space-y-4">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <ProductLookup 
+            <ProductLookupWithQR
               salesItems={salesItems}
               onSelect={handleProductSelected}
             />

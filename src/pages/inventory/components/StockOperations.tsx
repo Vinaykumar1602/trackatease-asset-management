@@ -23,6 +23,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
+import { ArrowUp, ArrowDown, ListPlus, ListMinus } from "lucide-react";
 
 interface StockOperationsProps {
   itemId: number;
@@ -56,7 +57,7 @@ export function StockOperations({ itemId, itemName, currentQuantity, onStockUpda
     setIsOpen(true);
     form.reset({
       quantity: 1,
-      notes: "",
+      notes: op === "in" ? "Stock received from supplier" : "Inventory used",
     });
   };
   
@@ -83,14 +84,40 @@ export function StockOperations({ itemId, itemName, currentQuantity, onStockUpda
   
   return (
     <>
-      <Button variant="ghost" size="sm" onClick={() => openDialog("in")}>Stock In</Button>
-      <Button variant="ghost" size="sm" onClick={() => openDialog("out")}>Stock Out</Button>
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={() => openDialog("in")}
+        className="flex items-center gap-1"
+      >
+        <ArrowUp className="h-4 w-4 text-green-600" />
+        Stock In
+      </Button>
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={() => openDialog("out")}
+        className="flex items-center gap-1"
+      >
+        <ArrowDown className="h-4 w-4 text-red-600" />
+        Stock Out
+      </Button>
       
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>
-              {operation === "in" ? "Stock In" : "Stock Out"}: {itemName}
+            <DialogTitle className="flex items-center gap-2">
+              {operation === "in" ? (
+                <>
+                  <ListPlus className="h-5 w-5 text-green-600" />
+                  Stock In: {itemName}
+                </>
+              ) : (
+                <>
+                  <ListMinus className="h-5 w-5 text-red-600" />
+                  Stock Out: {itemName}
+                </>
+              )}
             </DialogTitle>
             <DialogDescription>
               Current quantity: {currentQuantity}
@@ -139,7 +166,7 @@ export function StockOperations({ itemId, itemName, currentQuantity, onStockUpda
                 <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" variant={operation === "in" ? "default" : "destructive"}>
                   {operation === "in" ? "Add Stock" : "Remove Stock"}
                 </Button>
               </DialogFooter>

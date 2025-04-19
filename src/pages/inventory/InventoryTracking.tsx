@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Package, 
@@ -28,8 +28,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AddInventoryItemDialog } from "./components/AddInventoryItemDialog";
+import { ImportInventoryDialog } from "./components/ImportInventoryDialog";
 
-interface InventoryItem {
+export interface InventoryItem {
   id: number;
   name: string;
   sku: string;
@@ -90,8 +92,108 @@ export default function InventoryTracking() {
       return item;
     }));
     
+    // Show success toast
+    toast({
+      title: operation === "in" ? "Stock Added" : "Stock Removed",
+      description: `${quantity} units of ${inventoryItems.find(item => item.id === id)?.name} have been ${operation === "in" ? "added to" : "removed from"} inventory.`
+    });
+    
     // Log this activity (in a real app, would send to server)
     console.log(`Stock ${operation}: Item ID ${id}, Quantity ${quantity}, Notes: ${notes}`);
+  };
+
+  // Handle adding a new inventory item
+  const handleAddItem = (itemData: Omit<InventoryItem, "id" | "status">) => {
+    // Generate a new ID
+    const id = inventoryItems.length > 0 
+      ? Math.max(...inventoryItems.map(item => item.id)) + 1 
+      : 1;
+    
+    // Determine status based on quantity and min level
+    let status: "In Stock" | "Low Stock" | "Out of Stock" = "In Stock";
+    if (itemData.quantity === 0) {
+      status = "Out of Stock";
+    } else if (itemData.quantity <= itemData.minLevel) {
+      status = "Low Stock";
+    }
+    
+    // Create the new item
+    const newItem: InventoryItem = {
+      ...itemData,
+      id,
+      status
+    };
+    
+    // Add to inventory
+    setInventoryItems(prev => [...prev, newItem]);
+    
+    toast({
+      title: "Item Added",
+      description: `${newItem.name} has been added to inventory.`
+    });
+  };
+
+  // Handle importing inventory items
+  const handleImportItems = (items: Omit<InventoryItem, "id" | "status">[]) => {
+    // Process each imported item
+    const newItems = items.map((item, index) => {
+      // Generate an ID
+      const id = inventoryItems.length > 0 
+        ? Math.max(...inventoryItems.map(item => item.id)) + index + 1 
+        : index + 1;
+      
+      // Determine status
+      let status: "In Stock" | "Low Stock" | "Out of Stock" = "In Stock";
+      if (item.quantity === 0) {
+        status = "Out of Stock";
+      } else if (item.quantity <= item.minLevel) {
+        status = "Low Stock";
+      }
+      
+      return {
+        ...item,
+        id,
+        status
+      };
+    });
+    
+    // Add to inventory
+    setInventoryItems(prev => [...prev, ...newItems]);
+    
+    toast({
+      title: "Import Successful",
+      description: `${newItems.length} items have been imported to inventory.`
+    });
+  };
+
+  // Export inventory to CSV
+  const handleExport = () => {
+    // Create CSV content
+    const headers = ["ID", "Name", "SKU", "Category", "Quantity", "Min Level", "Location", "Status"];
+    const csvContent = [
+      headers.join(','),
+      ...filteredItems.map(item => 
+        [item.id, item.name, item.sku, item.category, item.quantity, item.minLevel, item.location, item.status].join(',')
+      )
+    ].join('\n');
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "inventory.csv");
+    link.style.visibility = 'hidden';
+    
+    // Download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Export Successful",
+      description: "Your inventory data has been exported to CSV."
+    });
   };
 
   // Filter items based on search query and filters
@@ -106,45 +208,37 @@ export default function InventoryTracking() {
     
     return matchesSearch && matchesLocation && matchesCategory && matchesStatus;
   });
-  
-  // Handle export functionality
-  const handleExport = () => {
-    // In a real app, would generate CSV/Excel
-    toast({
-      title: "Export Started",
-      description: "Your inventory data is being exported",
-    });
-  };
-  
-  // Handle import functionality
-  const handleImport = () => {
-    // In a real app, would open file selector and process import
-    toast({
-      title: "Import Feature",
-      description: "File import feature is enabled",
-    });
-  };
+
+  // Get counts for dashboard
+  const lowStockCount = inventoryItems.filter(item => item.status === "Low Stock").length;
+  const outOfStockCount = inventoryItems.filter(item => item.status === "Out of Stock").length;
+  const totalItems = inventoryItems.length;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Inventory Tracking</h1>
-          <p className="text-muted-foreground">Manage your inventory across locations.</p>
+          <p className="text-muted-foreground">
+            Manage your inventory across locations.
+            {lowStockCount > 0 && (
+              <span className="ml-2 text-yellow-600">
+                ({lowStockCount} items below minimum level)
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button variant="outline" size="sm" onClick={handleImport}>
-            <Upload className="h-4 w-4 mr-2" />
-            Import
-          </Button>
-          <Button size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Item
-          </Button>
+          <ImportInventoryDialog onImportComplete={handleImportItems} />
+          <AddInventoryItemDialog 
+            onAddItem={handleAddItem}
+            categories={categories.filter(c => c !== "All")}
+            locations={locations.filter(l => l !== "All")}
+          />
         </div>
       </div>
 

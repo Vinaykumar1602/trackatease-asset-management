@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Users, 
@@ -95,7 +95,7 @@ export default function UsersManagement() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
   const { toast } = useToast();
-  const fileInputRef = useState<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Add new user
   const handleAddUser = (userData: Omit<User, "id" | "lastLogin">) => {
@@ -180,7 +180,8 @@ export default function UsersManagement() {
             role: values[3] || "User",
             department: values[4] || "General",
             status: values[5] || "Active",
-            lastLogin: "Never"
+            lastLogin: "Never",
+            permissions: []
           };
         });
         
@@ -259,11 +260,12 @@ export default function UsersManagement() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
             <Upload className="h-4 w-4 mr-2" />
             Import
             <input
               type="file"
+              ref={fileInputRef}
               accept=".csv"
               className="hidden"
               onChange={handleImportUsers}

@@ -3,15 +3,17 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Wrench,
-  Calendar,
-  Download,
-  Upload,
+  Calendar as CalendarIcon,
+  Download, 
+  Upload, 
   Plus, 
   Search,
   Filter,
   CheckCircle,
   AlertCircle,
-  Check
+  Check,
+  Table as TableIcon, 
+  Calendar
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,6 +28,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { ServiceRecord } from "../sales/types";
 import { ScheduleServiceDialog } from "./components/ScheduleServiceDialog";
 import { ServiceEditDialog } from "./components/ServiceEditDialog";
+import { ServiceCalendarView } from "./components/ServiceCalendarView";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -94,6 +98,7 @@ export default function ServiceManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [editingService, setEditingService] = useState<ServiceItem | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   
   // State for service history
   const [serviceHistory, setServiceHistory] = useState<ServiceRecord[]>([
@@ -288,6 +293,14 @@ export default function ServiceManagement() {
     }
   };
   
+  // Handle view service details
+  const handleViewService = (id: number) => {
+    const service = serviceItems.find(item => item.id === id);
+    if (service) {
+      setEditingService(service);
+    }
+  };
+  
   // Filter service items based on search query and status filter
   const filteredServiceItems = serviceItems.filter(item => {
     // Search filter
@@ -312,10 +325,18 @@ export default function ServiceManagement() {
           <p className="text-muted-foreground">Schedule and track maintenance services.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Calendar className="h-4 w-4 mr-2" />
-            Calendar View
-          </Button>
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "table" | "calendar")}>
+            <TabsList>
+              <TabsTrigger value="table">
+                <TableIcon className="h-4 w-4 mr-2" />
+                Table View
+              </TabsTrigger>
+              <TabsTrigger value="calendar">
+                <Calendar className="h-4 w-4 mr-2" />
+                Calendar
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
           <Button variant="outline" size="sm" onClick={handleExportServices}>
             <Download className="h-4 w-4 mr-2" />
             Export
@@ -365,85 +386,92 @@ export default function ServiceManagement() {
         </div>
       </div>
 
-      <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Client</TableHead>
-              <TableHead>Product</TableHead>
-              <TableHead>Serial No.</TableHead>
-              <TableHead>Scheduled Date</TableHead>
-              <TableHead>Technician</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>SLA Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredServiceItems.length === 0 ? (
+      {viewMode === "table" ? (
+        <div className="border rounded-md">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
-                  No service records found. Schedule a new service or adjust your filters.
-                </TableCell>
+                <TableHead>Client</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead>Serial No.</TableHead>
+                <TableHead>Scheduled Date</TableHead>
+                <TableHead>Technician</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>SLA Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              filteredServiceItems.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.client}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Wrench className="h-4 w-4 text-muted-foreground" />
-                      <span>{item.product}</span>
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {filteredServiceItems.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
+                    No service records found. Schedule a new service or adjust your filters.
                   </TableCell>
-                  <TableCell>{item.serialNo}</TableCell>
-                  <TableCell>{item.scheduledDate}</TableCell>
-                  <TableCell>{item.technician}</TableCell>
-                  <TableCell>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      item.status === "Scheduled" ? "bg-blue-100 text-blue-800" :
-                      item.status === "Pending" ? "bg-yellow-100 text-yellow-800" :
-                      item.status === "Completed" ? "bg-green-100 text-green-800" :
-                      "bg-red-100 text-red-800"
-                    }`}>
-                      {item.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="flex items-center gap-1">
-                      {item.slaStatus === "Met" || item.slaStatus === "Within SLA" ? (
-                        <CheckCircle className="h-3 w-3 text-green-500" />
-                      ) : (
-                        <AlertCircle className="h-3 w-3 text-red-500" />
-                      )}
-                      <span className="text-sm">{item.slaStatus}</span>
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setEditingService(item)}
-                    >
-                      Edit
-                    </Button>
-                    {item.status !== "Completed" && (
+                </TableRow>
+              ) : (
+                filteredServiceItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.client}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Wrench className="h-4 w-4 text-muted-foreground" />
+                        <span>{item.product}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{item.serialNo}</TableCell>
+                    <TableCell>{item.scheduledDate}</TableCell>
+                    <TableCell>{item.technician}</TableCell>
+                    <TableCell>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        item.status === "Scheduled" ? "bg-blue-100 text-blue-800" :
+                        item.status === "Pending" ? "bg-yellow-100 text-yellow-800" :
+                        item.status === "Completed" ? "bg-green-100 text-green-800" :
+                        "bg-red-100 text-red-800"
+                      }`}>
+                        {item.status}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="flex items-center gap-1">
+                        {item.slaStatus === "Met" || item.slaStatus === "Within SLA" ? (
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <AlertCircle className="h-3 w-3 text-red-500" />
+                        )}
+                        <span className="text-sm">{item.slaStatus}</span>
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => handleCompleteService(item.id)}
+                        onClick={() => setEditingService(item)}
                       >
-                        <Check className="h-4 w-4 mr-1" />
-                        Complete
+                        Edit
                       </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                      {item.status !== "Completed" && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleCompleteService(item.id)}
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          Complete
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <ServiceCalendarView 
+          serviceItems={filteredServiceItems} 
+          onServiceClick={handleViewService} 
+        />
+      )}
 
       {/* Edit Service Dialog */}
       {editingService && (

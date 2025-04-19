@@ -1,11 +1,10 @@
-
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -13,232 +12,184 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Package, Plus } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { InventoryItem } from "../InventoryTracking";
-
-interface AddInventoryItemDialogProps {
-  onAddItem: (item: Omit<InventoryItem, "id" | "status">) => void;
-  categories: string[];
-  locations: string[];
-}
+import { InventoryItem } from "@/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
 
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  sku: z.string().min(3, "SKU must be at least 3 characters"),
-  category: z.string().min(1, "Category is required"),
-  quantity: z.number().min(0, "Quantity cannot be negative"),
-  minLevel: z.number().min(0, "Minimum level cannot be negative"),
-  location: z.string().min(1, "Location is required"),
+  sku: z.string().min(2, {
+    message: "SKU must be at least 2 characters.",
+  }),
+  name: z.string().optional(),
+  category: z.string().optional(),
+  location: z.string().optional(),
+  quantity: z.number().optional(),
+  minLevel: z.number().optional(),
 });
 
-export function AddInventoryItemDialog({ onAddItem, categories, locations }: AddInventoryItemDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
+interface AddInventoryItemDialogProps {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  onSave: (item: Omit<InventoryItem, "id" | "status">) => void;
+}
+
+export function AddInventoryItemDialog({ open, setOpen, onSave }: AddInventoryItemDialogProps) {
   const { toast } = useToast();
-  
+  const [isSaving, setIsSaving] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
       sku: "",
-      category: categories[0] || "Office Supplies",
+      name: "",
+      category: "",
+      location: "",
       quantity: 0,
-      minLevel: 5,
-      location: locations[0] || "Main Office",
+      minLevel: 0,
     },
   });
-  
-  const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    // Generate a SKU if not provided
-    let sku = values.sku;
-    if (!sku) {
-      const prefix = values.category.substring(0, 3).toUpperCase();
-      const timestamp = new Date().getFullYear();
-      const random = Math.floor(1000 + Math.random() * 9000);
-      sku = `${prefix}-${timestamp}-${random}`;
-    }
+
+  const handleSave = (data: z.infer<typeof formSchema>) => {
+    const newItem: Omit<InventoryItem, "id" | "status"> = {
+      sku: data.sku,
+      name: data.name || "", // Ensure name is not optional
+      category: data.category || "",
+      location: data.location || "",
+      quantity: data.quantity || 0,
+      minLevel: data.minLevel || 0
+    };
     
-    // Determine status based on quantity and minimum level
-    
-    onAddItem({
-      ...values,
-      sku,
-    });
-    
-    toast({
-      title: "Item Added",
-      description: `${values.name} has been added to inventory.`,
-    });
-    
-    setIsOpen(false);
-    form.reset();
+    onSave(newItem);
+    setOpen(false);
   };
-  
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Item
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Add New Inventory Item
-          </DialogTitle>
+          <DialogTitle>Add New Inventory Item</DialogTitle>
           <DialogDescription>
-            Add a new item to your inventory tracking system.
+            Add a new item to the inventory. Make sure to fill all the fields.
           </DialogDescription>
         </DialogHeader>
-        
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Item Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter item name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
+          <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4">
             <FormField
               control={form.control}
               name="sku"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>SKU (Optional - will be generated if empty)</FormLabel>
+                  <FormLabel>SKU</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., INK-2023-001" {...field} />
+                    <Input placeholder="Enter SKU" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                      </FormControl>
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter Name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
                       <SelectContent>
-                        {categories.map(category => (
-                          <SelectItem key={category} value={category}>{category}</SelectItem>
-                        ))}
+                        <SelectItem value="Electronics">Electronics</SelectItem>
+                        <SelectItem value="Furniture">Furniture</SelectItem>
+                        <SelectItem value="Stationery">Stationery</SelectItem>
+                        <SelectItem value="Appliances">Appliances</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select location" />
-                        </SelectTrigger>
-                      </FormControl>
+                  </FormControl>
+                  <FormDescription>
+                    Select a category for the item.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location</FormLabel>
+                  <FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a location" />
+                      </SelectTrigger>
                       <SelectContent>
-                        {locations.map(location => (
-                          <SelectItem key={location} value={location}>{location}</SelectItem>
-                        ))}
+                        <SelectItem value="Warehouse A">Warehouse A</SelectItem>
+                        <SelectItem value="Warehouse B">Warehouse B</SelectItem>
+                        <SelectItem value="Store Front">Store Front</SelectItem>
+                        <SelectItem value="Storage Unit">Storage Unit</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Initial Quantity</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        {...field}
-                        onChange={e => field.onChange(parseInt(e.target.value) || 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="minLevel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Minimum Stock Level</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        {...field}
-                        onChange={e => field.onChange(parseInt(e.target.value) || 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Add Item</Button>
-            </DialogFooter>
+                  </FormControl>
+                  <FormDescription>
+                    Select a location for the item.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="quantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quantity</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="Enter Quantity" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="minLevel"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Minimum Level</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="Enter Minimum Level" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? "Saving..." : "Add Item"}
+            </Button>
           </form>
         </Form>
       </DialogContent>

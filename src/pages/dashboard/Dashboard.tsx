@@ -1,10 +1,10 @@
 
-import { DashboardCard } from "@/components/dashboard/DashboardCard";
+import DashboardCard from "@/components/dashboard/DashboardCard";
 import { DashboardStats } from "./components/DashboardStats";
 import { StatusOverview } from "./components/StatusOverview";
 import { RecentActivities } from "./components/RecentActivities";
-import { ChartCard } from "@/components/dashboard/ChartCard";
-import { StatCard } from "@/components/dashboard/StatCard";
+import ChartCard from "@/components/dashboard/ChartCard";
+import StatCard from "@/components/dashboard/StatCard";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import React from "react";
 

@@ -1,117 +1,87 @@
-
 import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { QrCode, Search } from "lucide-react";
+import { Product } from "@/types";
 import { QrScanDialog } from "./QrScanDialog";
-import { SalesItem } from "../types";
+import { toast } from "@/components/ui/use-toast";
 
 interface ProductLookupProps {
-  salesItems: SalesItem[];
-  onSelect: (item: SalesItem) => void;
+  open: boolean;
+  onClose: () => void;
+  onSelect: (product: Product) => void;
+  products: Product[];
 }
 
-export function ProductLookupWithQR({ salesItems, onSelect }: ProductLookupProps) {
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+export function ProductLookupWithQR({ open, onClose, onSelect, products }: ProductLookupProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
-  
-  const handleQrScan = (code: string) => {
-    // Set the search query to the scanned code
-    setSearchQuery(code);
-    
-    // Check if the code matches any of the items
-    const matchedItem = salesItems.find(
-      item => 
-        item.serialNo.toLowerCase() === code.toLowerCase() || 
-        item.productId.toString() === code || 
-        item.productName.toLowerCase().includes(code.toLowerCase())
-    );
-    
-    // If a match is found, select the item
-    if (matchedItem) {
-      onSelect(matchedItem);
-    }
-    
-    // Open the popover to show search results
-    setIsPopoverOpen(true);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
   };
 
-  // Filter the items based on the search query
-  const filteredItems = searchQuery
-    ? salesItems.filter((item) =>
-        item.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.serialNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.client.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.sku.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleQrCodeScanned = (decodedText: string) => {
+    // Check if the decoded text is a valid product ID or SKU
+    const foundProduct = products.find(
+      (product) => product.id === decodedText || product.sku === decodedText
+    );
+    
+    if (foundProduct) {
+      onSelect(foundProduct);
+      setQrDialogOpen(false);
+    } else {
+      toast({
+        title: "Product Not Found",
+        description: "No product matches the scanned QR code.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
-    <>
-      <div className="flex items-center space-x-2 w-full md:w-64">
-        <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-          <PopoverTrigger asChild>
-            <Button 
-              variant="outline" 
-              role="combobox" 
-              className="w-full justify-between"
-            >
-              <Search className="mr-2 h-4 w-4" />
-              Search Products
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[300px] p-0" align="start">
-            <Command>
-              <CommandInput 
-                placeholder="Search by product name, serial no..." 
-                value={searchQuery} 
-                onValueChange={setSearchQuery}
-              />
-              <CommandList>
-                <CommandEmpty>No products found.</CommandEmpty>
-                <CommandGroup>
-                  {filteredItems.map((item) => (
-                    <CommandItem
-                      key={item.id}
-                      onSelect={() => {
-                        onSelect(item);
-                        setIsPopoverOpen(false);
-                      }}
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium">{item.productName}</span>
-                        <span className="text-xs text-muted-foreground">
-                          SN: {item.serialNo} | Client: {item.client}
-                        </span>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-        
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setIsQrScannerOpen(true)}
-          title="Scan QR Code"
-        >
-          <QrCode className="h-4 w-4" />
-        </Button>
-      </div>
-      
-      <QrScanDialog 
-        isOpen={isQrScannerOpen}
-        onClose={() => setIsQrScannerOpen(false)}
-        onScan={handleQrScan}
-      />
-    </>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Select Product</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <Input
+            placeholder="Search product..."
+            value={searchQuery}
+            onChange={handleSearch}
+          />
+          <Button variant="outline" size="sm" onClick={() => setQrDialogOpen(true)}>
+            Scan QR Code
+          </Button>
+          <QrScanDialog
+            open={qrDialogOpen}
+            onClose={() => setQrDialogOpen(false)}
+            onScan={handleQrCodeScanned}
+          />
+          {filteredProducts.length > 0 ? (
+            <ul className="max-h-40 overflow-y-auto">
+              {filteredProducts.map((product) => (
+                <li
+                  key={product.id}
+                  className="py-2 px-3 rounded-md hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                  onClick={() => onSelect(product)}
+                >
+                  {product.name} ({product.sku})
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">No products found.</p>
+          )}
+        </div>
+        <Button type="submit" onClick={onClose}>Close</Button>
+      </DialogContent>
+    </Dialog>
   );
 }

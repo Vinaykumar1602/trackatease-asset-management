@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, QrCode } from "lucide-react";
@@ -17,6 +17,7 @@ import {
 import { SalesItem } from "../types";
 import { Asset } from "../../assets/types";
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import { useToast } from "@/components/ui/use-toast";
 
 interface ProductLookupProps {
   salesItems: SalesItem[];
@@ -29,6 +30,8 @@ export function ProductLookup({ salesItems, assets = [], onSelect }: ProductLook
   const [isOpen, setIsOpen] = useState(false);
   const [results, setResults] = useState<Array<SalesItem | Asset>>([]);
   const [showQrScanner, setShowQrScanner] = useState(false);
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const { toast } = useToast();
   
   useEffect(() => {
     if (searchTerm.length > 0) {
@@ -58,30 +61,65 @@ export function ProductLookup({ salesItems, assets = [], onSelect }: ProductLook
   }, [searchTerm, salesItems, assets]);
 
   useEffect(() => {
-    let scanner: Html5QrcodeScanner | null = null;
-
-    if (showQrScanner) {
-      scanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
-      );
-
-      scanner.render((decodedText) => {
-        setSearchTerm(decodedText);
-        setShowQrScanner(false);
-        scanner?.clear();
-      }, (error) => {
-        console.warn(`QR Code scanning failed: ${error}`);
-      });
-    }
-
+    // Clean up scanner when component unmounts
     return () => {
-      if (scanner) {
-        scanner.clear().catch(console.error);
+      if (scannerRef.current) {
+        scannerRef.current.clear().catch(console.error);
+        scannerRef.current = null;
       }
     };
-  }, [showQrScanner]);
+  }, []);
+
+  // Initialize QR scanner when dialog is shown
+  useEffect(() => {
+    if (showQrScanner) {
+      // Small timeout to ensure the DOM element is available
+      const initScanner = setTimeout(() => {
+        // Check if the element exists before creating scanner
+        const qrElement = document.getElementById("qr-reader");
+        if (!qrElement) {
+          console.error("QR reader element not found");
+          setShowQrScanner(false);
+          toast({
+            title: "QR Scanner Error",
+            description: "Could not initialize QR scanner",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        try {
+          scannerRef.current = new Html5QrcodeScanner(
+            "qr-reader",
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            /* verbose= */ false
+          );
+          
+          scannerRef.current.render((decodedText) => {
+            setSearchTerm(decodedText);
+            setShowQrScanner(false);
+          }, (error) => {
+            console.warn(`QR Code scanning failed: ${error}`);
+          });
+        } catch (error) {
+          console.error("Error initializing QR scanner:", error);
+          toast({
+            title: "QR Scanner Error",
+            description: "Could not initialize QR scanner",
+            variant: "destructive"
+          });
+        }
+      }, 300); // Small delay to ensure DOM is ready
+      
+      return () => {
+        clearTimeout(initScanner);
+        if (scannerRef.current) {
+          scannerRef.current.clear().catch(console.error);
+          scannerRef.current = null;
+        }
+      };
+    }
+  }, [showQrScanner, toast]);
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,12 +207,18 @@ export function ProductLookup({ salesItems, assets = [], onSelect }: ProductLook
         </PopoverContent>
       </Popover>
 
-      <Dialog open={showQrScanner} onOpenChange={setShowQrScanner}>
+      <Dialog open={showQrScanner} onOpenChange={(open) => {
+        setShowQrScanner(open);
+        if (!open && scannerRef.current) {
+          scannerRef.current.clear().catch(console.error);
+          scannerRef.current = null;
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Scan QR Code</DialogTitle>
           </DialogHeader>
-          <div id="qr-reader" className="w-full" />
+          <div id="qr-reader" className="w-full h-64 mx-auto" />
         </DialogContent>
       </Dialog>
     </>

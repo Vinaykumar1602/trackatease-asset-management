@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download as DownloadIcon } from "lucide-react";
 import { AddSaleDialog } from "./AddSaleDialog";
 import { ImportDialog } from "./ImportDialog";
 import { ImportFormat } from "../types";
@@ -19,7 +19,7 @@ export function SalesHeader({ onImportComplete, onExportCSV }: SalesHeaderProps)
       </div>
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" onClick={() => onExportCSV('sales')}>
-          <Download className="h-4 w-4 mr-2" />
+          <DownloadIcon className="h-4 w-4 mr-2" />
           Export
         </Button>
         <ImportDialog 

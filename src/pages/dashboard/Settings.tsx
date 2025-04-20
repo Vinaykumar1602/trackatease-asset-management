@@ -4,21 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bell, Mail, Settings as SettingsIcon } from "lucide-react";
+import { Bell, Settings as SettingsIcon, Globe, Clock, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { SettingsType, loadSettings, saveSettings } from "./utils/settingsUtils";
+import { SettingsType, loadSettings, saveSettings, defaultSettings } from "./utils/settingsUtils";
 
 export default function Settings() {
-  const [settings, setSettings] = useState<SettingsType>({
-    emailNotifications: true,
-    maintenanceAlerts: true,
-    warrantyAlerts: true,
-    email: "admin@company.com",
-    theme: "light",
-    language: "en",
-  });
-  
+  const [settings, setSettings] = useState<SettingsType>(defaultSettings);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -85,27 +84,92 @@ export default function Settings() {
                 onCheckedChange={(checked) => handleSettingChange('warrantyAlerts', checked)}
               />
             </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="system-updates">System Updates</Label>
+              <Switch
+                id="system-updates"
+                checked={settings.systemUpdates}
+                onCheckedChange={(checked) => handleSettingChange('systemUpdates', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="security-alerts">Security Alerts</Label>
+              <Switch
+                id="security-alerts"
+                checked={settings.securityAlerts}
+                onCheckedChange={(checked) => handleSettingChange('securityAlerts', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="task-reminders">Task Reminders</Label>
+              <Switch
+                id="task-reminders"
+                checked={settings.taskReminders}
+                onCheckedChange={(checked) => handleSettingChange('taskReminders', checked)}
+              />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Email Settings
+              <Globe className="h-5 w-5" />
+              Localization
             </CardTitle>
-            <CardDescription>Configure your email preferences.</CardDescription>
+            <CardDescription>Configure your regional preferences.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                type="email"
-                id="email"
-                placeholder="Enter your email"
-                value={settings.email}
-                onChange={(e) => handleSettingChange('email', e.target.value)}
-              />
+              <Label htmlFor="language">Language</Label>
+              <Select
+                value={settings.language}
+                onValueChange={(value) => handleSettingChange('language', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="es">Spanish</SelectItem>
+                  <SelectItem value="fr">French</SelectItem>
+                  <SelectItem value="de">German</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="timezone">Timezone</Label>
+              <Select
+                value={settings.timezone}
+                onValueChange={(value) => handleSettingChange('timezone', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select timezone" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="UTC">UTC</SelectItem>
+                  <SelectItem value="America/New_York">Eastern Time</SelectItem>
+                  <SelectItem value="America/Chicago">Central Time</SelectItem>
+                  <SelectItem value="America/Denver">Mountain Time</SelectItem>
+                  <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="dateFormat">Date Format</Label>
+              <Select
+                value={settings.dateFormat}
+                onValueChange={(value) => handleSettingChange('dateFormat', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select date format" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                  <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                  <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>

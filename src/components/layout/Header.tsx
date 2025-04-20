@@ -1,7 +1,8 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Bell, Menu, Search, LogOut, Settings, User } from "lucide-react";
+import { Menu, Search, Settings, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,11 +16,13 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/context/AuthContext';
+import { NotificationPopover } from '../notifications/NotificationPopover';
 
 export default function Header() {
   const isMobile = useIsMobile();
   const [searchValue, setSearchValue] = useState("");
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const getInitials = (name: string) => {
     return name
@@ -28,6 +31,10 @@ export default function Header() {
       .join('')
       .toUpperCase()
       .substring(0, 2);
+  };
+
+  const handleNavigate = (path: string) => {
+    navigate(path);
   };
 
   return (
@@ -56,10 +63,7 @@ export default function Header() {
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Notifications</span>
-        </Button>
+        <NotificationPopover />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
@@ -70,7 +74,7 @@ export default function Header() {
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               {user ? user.name : 'Account'}
               {user && (
@@ -78,16 +82,16 @@ export default function Header() {
               )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleNavigate('/profile')}>
               <User className="h-4 w-4 mr-2" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleNavigate('/settings')}>
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout}>
+            <DropdownMenuItem onClick={logout} className="text-red-600">
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </DropdownMenuItem>

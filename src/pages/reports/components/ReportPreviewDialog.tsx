@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -51,8 +50,32 @@ export function ReportPreviewDialog({ report, period, format, onClose }: ReportP
     });
   };
 
-  // Generate fake report data based on report type
   const generateReportPreview = () => {
+    const getMockData = () => {
+      switch (report.title) {
+        case "Asset Register":
+          return [
+            { id: "001", name: "Desktop Computer", category: "IT Equipment", serial: "COMP-2023-001", location: "Main Office", status: "Active" },
+            { id: "002", name: "Printer X500", category: "Office Equipment", serial: "PRINT-2023-002", location: "Finance Dept", status: "Under Repair" },
+            { id: "003", name: "Server Rack", category: "IT Infrastructure", serial: "SRV-2023-003", location: "Server Room", status: "Active" },
+          ];
+        case "AMC Expiry Report":
+          return [
+            { client: "ABC Corp", product: "Server System X1", serial: "SRV-X1-2023-001", startDate: "2024-01-16", endDate: "2025-01-15", daysLeft: 45 },
+            { client: "City Mall", product: "Digital Signage", serial: "DSS-2022-004", startDate: "2023-12-13", endDate: "2024-12-12", daysLeft: 15 },
+          ];
+        case "Service History":
+          return [
+            { date: "2024-03-10", product: "Server System X1", client: "ABC Corp", technician: "Mike Johnson", description: "Routine maintenance", nextService: "2024-09-10" },
+            { date: "2024-04-05", product: "Network Switch", client: "XYZ Inc", technician: "Sarah Wilson", description: "Firmware update", nextService: "2024-07-05" },
+          ];
+        default:
+          return [];
+      }
+    };
+
+    const data = getMockData();
+
     switch (report.title) {
       case "Asset Register":
         return (
@@ -69,23 +92,16 @@ export function ReportPreviewDialog({ report, period, format, onClose }: ReportP
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className="py-2 px-4 border-t">001</td>
-                  <td className="py-2 px-4 border-t">Desktop Computer</td>
-                  <td className="py-2 px-4 border-t">IT Equipment</td>
-                  <td className="py-2 px-4 border-t">COMP-2023-001</td>
-                  <td className="py-2 px-4 border-t">Main Office</td>
-                  <td className="py-2 px-4 border-t">Active</td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-4 border-t">002</td>
-                  <td className="py-2 px-4 border-t">Printer X500</td>
-                  <td className="py-2 px-4 border-t">Office Equipment</td>
-                  <td className="py-2 px-4 border-t">PRINT-2023-002</td>
-                  <td className="py-2 px-4 border-t">Finance Dept</td>
-                  <td className="py-2 px-4 border-t">Under Repair</td>
-                </tr>
-                {/* Add more sample rows as needed */}
+                {data.map((item: any) => (
+                  <tr key={item.id}>
+                    <td className="py-2 px-4 border-t">{item.id}</td>
+                    <td className="py-2 px-4 border-t">{item.name}</td>
+                    <td className="py-2 px-4 border-t">{item.category}</td>
+                    <td className="py-2 px-4 border-t">{item.serial}</td>
+                    <td className="py-2 px-4 border-t">{item.location}</td>
+                    <td className="py-2 px-4 border-t">{item.status}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -106,23 +122,16 @@ export function ReportPreviewDialog({ report, period, format, onClose }: ReportP
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className="py-2 px-4 border-t">ABC Corporation</td>
-                  <td className="py-2 px-4 border-t">Server System X1</td>
-                  <td className="py-2 px-4 border-t">SRV-X1-2023-001</td>
-                  <td className="py-2 px-4 border-t">Jan 16, 2024</td>
-                  <td className="py-2 px-4 border-t">Jan 15, 2025</td>
-                  <td className="py-2 px-4 border-t">45</td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-4 border-t">City Mall</td>
-                  <td className="py-2 px-4 border-t">Digital Signage System</td>
-                  <td className="py-2 px-4 border-t">DSS-2022-004</td>
-                  <td className="py-2 px-4 border-t">Dec 13, 2023</td>
-                  <td className="py-2 px-4 border-t">Dec 12, 2024</td>
-                  <td className="py-2 px-4 border-t">15</td>
-                </tr>
-                {/* Add more sample rows as needed */}
+                {data.map((item: any, index: number) => (
+                  <tr key={index}>
+                    <td className="py-2 px-4 border-t">{item.client}</td>
+                    <td className="py-2 px-4 border-t">{item.product}</td>
+                    <td className="py-2 px-4 border-t">{item.serial}</td>
+                    <td className="py-2 px-4 border-t">{item.startDate}</td>
+                    <td className="py-2 px-4 border-t">{item.endDate}</td>
+                    <td className="py-2 px-4 border-t">{item.daysLeft}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -143,23 +152,16 @@ export function ReportPreviewDialog({ report, period, format, onClose }: ReportP
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className="py-2 px-4 border-t">Mar 10, 2024</td>
-                  <td className="py-2 px-4 border-t">Server System X1</td>
-                  <td className="py-2 px-4 border-t">ABC Corporation</td>
-                  <td className="py-2 px-4 border-t">Mike Johnson</td>
-                  <td className="py-2 px-4 border-t">Routine maintenance</td>
-                  <td className="py-2 px-4 border-t">Sep 10, 2024</td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-4 border-t">Apr 5, 2024</td>
-                  <td className="py-2 px-4 border-t">Network Switch N500</td>
-                  <td className="py-2 px-4 border-t">XYZ Inc</td>
-                  <td className="py-2 px-4 border-t">Sarah Wilson</td>
-                  <td className="py-2 px-4 border-t">Firmware update</td>
-                  <td className="py-2 px-4 border-t">Jul 5, 2024</td>
-                </tr>
-                {/* Add more sample rows as needed */}
+                {data.map((item: any, index: number) => (
+                  <tr key={index}>
+                    <td className="py-2 px-4 border-t">{item.date}</td>
+                    <td className="py-2 px-4 border-t">{item.product}</td>
+                    <td className="py-2 px-4 border-t">{item.client}</td>
+                    <td className="py-2 px-4 border-t">{item.technician}</td>
+                    <td className="py-2 px-4 border-t">{item.description}</td>
+                    <td className="py-2 px-4 border-t">{item.nextService}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

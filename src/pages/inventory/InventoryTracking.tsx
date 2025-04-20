@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -30,9 +29,9 @@ import {
 } from "@/components/ui/select";
 import { AddInventoryItemDialog, InventoryItem } from "./components/AddInventoryItemDialog";
 import { ImportInventoryDialog } from "./components/ImportInventoryDialog";
+import { InventoryEditDialog } from "./components/InventoryEditDialog";
 
 export default function InventoryTracking() {
-  // State for inventory items
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([
     { id: 1, name: "Printer Ink Cartridge", sku: "INK-2023-001", category: "Office Supplies", quantity: 45, minLevel: 10, location: "Main Office", status: "In Stock" },
     { id: 2, name: "Toner Cartridge", sku: "TNR-2023-002", category: "Office Supplies", quantity: 8, minLevel: 10, location: "Main Office", status: "Low Stock" },
@@ -41,30 +40,24 @@ export default function InventoryTracking() {
     { id: 5, name: "Laptop Cooling Pad", sku: "LCP-2023-005", category: "IT Equipment", quantity: 3, minLevel: 5, location: "Main Office", status: "Low Stock" }
   ]);
 
-  // State for search and filters
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
-  
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+
   const { toast } = useToast();
   
-  // Get unique locations
   const locations = ["All", ...new Set(inventoryItems.map(item => item.location))];
-  
-  // Get unique categories
   const categories = ["All", ...new Set(inventoryItems.map(item => item.category))];
 
-  // Handle stock operations (in/out)
   const handleStockUpdate = (id: number, quantity: number, operation: "in" | "out", notes: string) => {
     setInventoryItems(prev => prev.map(item => {
       if (item.id === id) {
-        // Calculate new quantity
         const newQuantity = operation === "in" 
           ? item.quantity + quantity 
           : Math.max(0, item.quantity - quantity);
         
-        // Determine status based on new quantity and min level
         let newStatus: "In Stock" | "Low Stock" | "Out of Stock" = "In Stock";
         if (newQuantity === 0) {
           newStatus = "Out of Stock";
@@ -81,24 +74,19 @@ export default function InventoryTracking() {
       return item;
     }));
     
-    // Show success toast
     toast({
       title: operation === "in" ? "Stock Added" : "Stock Removed",
       description: `${quantity} units of ${inventoryItems.find(item => item.id === id)?.name} have been ${operation === "in" ? "added to" : "removed from"} inventory.`
     });
     
-    // Log this activity (in a real app, would send to server)
     console.log(`Stock ${operation}: Item ID ${id}, Quantity ${quantity}, Notes: ${notes}`);
   };
 
-  // Handle adding a new inventory item
   const handleAddItem = (itemData: Omit<InventoryItem, "id" | "status">) => {
-    // Generate a new ID
     const id = inventoryItems.length > 0 
       ? Math.max(...inventoryItems.map(item => item.id)) + 1 
       : 1;
     
-    // Determine status based on quantity and min level
     let status: "In Stock" | "Low Stock" | "Out of Stock" = "In Stock";
     if (itemData.quantity === 0) {
       status = "Out of Stock";
@@ -106,14 +94,12 @@ export default function InventoryTracking() {
       status = "Low Stock";
     }
     
-    // Create the new item
     const newItem: InventoryItem = {
       ...itemData,
       id,
       status
     };
     
-    // Add to inventory
     setInventoryItems(prev => [...prev, newItem]);
     
     toast({
@@ -122,16 +108,12 @@ export default function InventoryTracking() {
     });
   };
 
-  // Handle importing inventory items
   const handleImportItems = (items: Omit<InventoryItem, "id" | "status">[]) => {
-    // Process each imported item
     const newItems = items.map((item, index) => {
-      // Generate an ID
       const id = inventoryItems.length > 0 
         ? Math.max(...inventoryItems.map(item => item.id)) + index + 1 
         : index + 1;
       
-      // Determine status
       let status: "In Stock" | "Low Stock" | "Out of Stock" = "In Stock";
       if (item.quantity === 0) {
         status = "Out of Stock";
@@ -146,7 +128,6 @@ export default function InventoryTracking() {
       };
     });
     
-    // Add to inventory
     setInventoryItems(prev => [...prev, ...newItems]);
     
     toast({
@@ -155,9 +136,18 @@ export default function InventoryTracking() {
     });
   };
 
-  // Export inventory to CSV
+  const handleEditItem = (updatedItem: InventoryItem) => {
+    setInventoryItems(prev => 
+      prev.map(item => item.id === updatedItem.id ? updatedItem : item)
+    );
+    
+    toast({
+      title: "Item Updated",
+      description: `${updatedItem.name} has been updated successfully.`
+    });
+  };
+
   const handleExport = () => {
-    // Create CSV content
     const headers = ["ID", "Name", "SKU", "Category", "Quantity", "Min Level", "Location", "Status"];
     const csvContent = [
       headers.join(','),
@@ -166,7 +156,6 @@ export default function InventoryTracking() {
       )
     ].join('\n');
     
-    // Create download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -174,7 +163,6 @@ export default function InventoryTracking() {
     link.setAttribute("download", "inventory.csv");
     link.style.visibility = 'hidden';
     
-    // Download
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -185,7 +173,6 @@ export default function InventoryTracking() {
     });
   };
 
-  // Filter items based on search query and filters
   const filteredItems = inventoryItems.filter(item => {
     const matchesSearch = searchQuery === "" || 
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -198,12 +185,10 @@ export default function InventoryTracking() {
     return matchesSearch && matchesLocation && matchesCategory && matchesStatus;
   });
 
-  // Get counts for dashboard
   const lowStockCount = inventoryItems.filter(item => item.status === "Low Stock").length;
   const outOfStockCount = inventoryItems.filter(item => item.status === "Out of Stock").length;
   const totalItems = inventoryItems.length;
 
-  // Dialog state
   const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
 
   return (
@@ -233,7 +218,6 @@ export default function InventoryTracking() {
         </div>
       </div>
 
-      {/* Add Item Dialog */}
       <AddInventoryItemDialog 
         open={addItemDialogOpen}
         setOpen={setAddItemDialogOpen}
@@ -350,12 +334,21 @@ export default function InventoryTracking() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <StockOperations 
-                      itemId={item.id}
-                      itemName={item.name}
-                      currentQuantity={item.quantity}
-                      onStockUpdate={handleStockUpdate}
-                    />
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingItem(item)}
+                      >
+                        Edit
+                      </Button>
+                      <StockOperations 
+                        itemId={item.id}
+                        itemName={item.name}
+                        currentQuantity={item.quantity}
+                        onStockUpdate={handleStockUpdate}
+                      />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -363,6 +356,14 @@ export default function InventoryTracking() {
           </TableBody>
         </Table>
       </div>
+
+      <InventoryEditDialog
+        item={editingItem}
+        onSave={handleEditItem}
+        onClose={() => setEditingItem(null)}
+        categories={categories.filter(c => c !== "All")}
+        locations={locations.filter(l => l !== "All")}
+      />
     </div>
   );
 }

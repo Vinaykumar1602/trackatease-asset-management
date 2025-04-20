@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,10 +41,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { AssetFilters } from "./components/AssetFilters";
 import { QrScanDialog } from "./components/QrScanDialog";
 import { AssetEditDialog } from "./components/AssetEditDialog";
+import { AssetViewDialog } from "./components/AssetViewDialog";
 import { Asset } from "./types";
 
 export default function AssetManagement() {
-  // State for asset data
   const [assets, setAssets] = useState<Asset[]>([
     { id: 1, name: "Desktop Computer", category: "IT Equipment", serial: "COMP-2023-001", location: "Main Office", assignedTo: "John Smith", status: "Active" },
     { id: 2, name: "Printer X500", category: "Office Equipment", serial: "PRINT-2023-002", location: "Finance Dept", assignedTo: "Finance Team", status: "Under Repair" },
@@ -53,8 +52,7 @@ export default function AssetManagement() {
     { id: 4, name: "HVAC System", category: "Building Equipment", serial: "HVAC-2022-004", location: "Building A", assignedTo: "Facilities", status: "Active" },
     { id: 5, name: "Company Car", category: "Vehicles", serial: "CAR-2023-005", location: "Parking Lot", assignedTo: "Sales Team", status: "Active" }
   ]);
-  
-  // State for new asset form
+
   const [newAsset, setNewAsset] = useState<Omit<Asset, 'id'>>({
     name: "",
     category: "IT Equipment",
@@ -63,37 +61,31 @@ export default function AssetManagement() {
     assignedTo: "",
     status: "Active"
   });
-  
-  // State for search and filters
+
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [locationFilter, setLocationFilter] = useState<string>("All");
   const [showFilters, setShowFilters] = useState(false);
-  
-  // State for dialog
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
-  
-  // Ref for file upload
+  const [viewingAsset, setViewingAsset] = useState<Asset | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const { toast } = useToast();
-  
-  // Form handler
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewAsset(prev => ({ ...prev, [name]: value }));
   };
-  
-  // Select handler
+
   const handleSelectChange = (name: string, value: string) => {
     setNewAsset(prev => ({ ...prev, [name]: value }));
   };
-  
-  // Add new asset
+
   const handleAddAsset = () => {
-    // Validate required fields
     if (!newAsset.name || !newAsset.serial) {
       toast({
         title: "Missing required fields",
@@ -109,7 +101,6 @@ export default function AssetManagement() {
     setAssets(prev => [...prev, assetToAdd]);
     setIsDialogOpen(false);
     
-    // Reset form
     setNewAsset({
       name: "",
       category: "IT Equipment",
@@ -124,8 +115,7 @@ export default function AssetManagement() {
       description: `${assetToAdd.name} has been added to your assets.`
     });
   };
-  
-  // Edit asset
+
   const handleEditAsset = (updatedAsset: Asset) => {
     setAssets(prev => prev.map(asset => 
       asset.id === updatedAsset.id ? updatedAsset : asset
@@ -138,8 +128,7 @@ export default function AssetManagement() {
       description: `${updatedAsset.name} has been updated.`
     });
   };
-  
-  // Delete asset
+
   const handleDeleteAsset = (id: number) => {
     setAssets(prev => prev.filter(asset => asset.id !== id));
     
@@ -148,8 +137,7 @@ export default function AssetManagement() {
       description: "The asset has been removed from your inventory."
     });
   };
-  
-  // Export assets to CSV
+
   const handleExportAssets = () => {
     const headers = ["ID", "Name", "Category", "Serial", "Location", "Assigned To", "Status"];
     const csvContent = [
@@ -176,8 +164,7 @@ export default function AssetManagement() {
       description: "Assets have been exported to CSV."
     });
   };
-  
-  // Import assets from CSV
+
   const handleImportAssets = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -189,7 +176,6 @@ export default function AssetManagement() {
         const rows = text.split('\n').filter(row => row.trim());
         const headers = rows[0].split(',');
         
-        // Skip header row
         const importedAssets = rows.slice(1).map(row => {
           const values = row.split(',');
           return {
@@ -219,13 +205,11 @@ export default function AssetManagement() {
     };
     reader.readAsText(file);
     
-    // Clear the input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
-  
-  // Handle QR code scan result
+
   const handleQrCodeScan = (serial: string) => {
     const foundAsset = assets.find(asset => asset.serial === serial);
     if (foundAsset) {
@@ -242,10 +226,8 @@ export default function AssetManagement() {
       });
     }
   };
-  
-  // Filter assets based on search query and filters
+
   const filteredAssets = assets.filter(asset => {
-    // Search filter
     const matchesSearch = 
       searchQuery === "" || 
       asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -254,13 +236,10 @@ export default function AssetManagement() {
       asset.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       asset.assignedTo.toLowerCase().includes(searchQuery.toLowerCase());
       
-    // Category filter
     const matchesCategory = categoryFilter === "All" || asset.category === categoryFilter;
     
-    // Status filter
     const matchesStatus = statusFilter === "All" || asset.status === statusFilter;
     
-    // Location filter
     const matchesLocation = locationFilter === "All" || asset.location === locationFilter;
     
     return matchesSearch && matchesCategory && matchesStatus && matchesLocation;
@@ -474,7 +453,13 @@ export default function AssetManagement() {
                     >
                       Edit
                     </Button>
-                    <Button variant="ghost" size="sm">View</Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setViewingAsset(asset)}
+                    >
+                      View
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -483,13 +468,19 @@ export default function AssetManagement() {
         </Table>
       </div>
 
-      {/* Edit Asset Dialog */}
       {editingAsset && (
         <AssetEditDialog
           asset={editingAsset}
           onSave={handleEditAsset}
           onDelete={handleDeleteAsset}
           onCancel={() => setEditingAsset(null)}
+        />
+      )}
+
+      {viewingAsset && (
+        <AssetViewDialog
+          asset={viewingAsset}
+          onClose={() => setViewingAsset(null)}
         />
       )}
     </div>

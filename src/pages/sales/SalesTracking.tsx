@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,7 +89,13 @@ export default function SalesTracking() {
       
     const matchesStatus = statusFilter === "All" || item.status === statusFilter;
     const matchesClient = clientFilter === "All" || item.client === clientFilter;
-    const matchesWarranty = warrantyFilter === "All" || item.warrantyStatus === warrantyFilter;
+    
+    // Fix: The issue is here - there's no warrantyStatus property in SalesItem
+    // Let's use the status field when the filter is specifically about warranty
+    const matchesWarranty = warrantyFilter === "All" || 
+                          (warrantyFilter === "Valid" && item.status === "Warranty Only") ||
+                          (warrantyFilter === "Expiring Soon" && item.status === "Expiring Soon") ||
+                          (warrantyFilter === "Expired" && item.status === "Expired");
     
     return matchesSearch && matchesStatus && matchesClient && matchesWarranty;
   });

@@ -8,74 +8,126 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
-
-// Define settings interface
-interface UserSettings {
-  theme: 'light' | 'dark' | 'system';
-  notifications: {
-    email: boolean;
-    push: boolean;
-    inApp: boolean;
-  };
-  language: string;
-  dateFormat: string;
-}
+import { supabase } from "@/integrations/supabase/client";
+import { defaultSettings, SettingsType } from "./utils/settingsUtils";
 
 export default function Settings() {
   const { toast } = useToast();
   const { user } = useAuth();
   
-  const [settings, setSettings] = useState<UserSettings>({
-    theme: 'system',
-    notifications: {
-      email: true,
-      push: true,
-      inApp: true,
-    },
-    language: 'en',
-    dateFormat: 'MM/DD/YYYY',
-  });
+  const [settings, setSettings] = useState<SettingsType>(defaultSettings);
+  const [isSaving, setIsSaving] = useState(false);
   
-  // Load settings from local storage
+  // Load settings from database or local storage as fallback
   useEffect(() => {
-    const storedSettings = localStorage.getItem('user_settings');
+    const loadUserSettings = async () => {
+      // Try to load from Supabase if user is authenticated
+      if (user?.id) {
+        try {
+          const { data, error } = await supabase
+            .from('user_settings')
+            .select('settings')
+            .eq('user_id', user.id)
+            .single();
+            
+          if (error) throw error;
+          
+          if (data?.settings) {
+            setSettings(data.settings as SettingsType);
+            // Also update localStorage for offline access
+            localStorage.setItem('user_settings', JSON.stringify(data.settings));
+            return;
+          }
+        } catch (error) {
+          console.error('Error loading settings from database:', error);
+        }
+      }
+      
+      // Fallback to localStorage if no database settings or not authenticated
+      const storedSettings = localStorage.getItem('user_settings');
+      if (storedSettings) {
+        try {
+          const parsedSettings = JSON.parse(storedSettings);
+          setSettings({ ...defaultSettings, ...parsedSettings });
+        } catch (e) {
+          console.error('Failed to parse stored settings', e);
+          setSettings(defaultSettings);
+        }
+      }
+    };
     
-    if (storedSettings) {
+    loadUserSettings();
+  }, [user]);
+  
+  // Save settings to database and local storage
+  const saveSettings = async () => {
+    setIsSaving(true);
+    
+    // Always save to localStorage
+    localStorage.setItem('user_settings', JSON.stringify(settings));
+    
+    // Save to database if authenticated
+    if (user?.id) {
       try {
-        const parsedSettings = JSON.parse(storedSettings);
-        setSettings(parsedSettings);
-      } catch (e) {
-        console.error('Failed to parse stored settings', e);
+        const { error } = await supabase
+          .from('user_settings')
+          .upsert({ 
+            user_id: user.id, 
+            settings,
+            updated_at: new Date().toISOString()
+          }, { 
+            onConflict: 'user_id' 
+          });
+          
+        if (error) throw error;
+        
+      } catch (error) {
+        console.error('Error saving settings to database:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save settings to the server. Your settings are saved locally.",
+          variant: "destructive"
+        });
+        setIsSaving(false);
+        return;
       }
     }
-  }, []);
-  
-  // Save settings to local storage
-  const saveSettings = () => {
-    localStorage.setItem('user_settings', JSON.stringify(settings));
+    
+    setIsSaving(false);
     toast({
       title: "Settings Saved",
       description: "Your preferences have been updated."
     });
-  };
-  
-  const handleThemeChange = (theme: 'light' | 'dark' | 'system') => {
-    setSettings(prev => ({ ...prev, theme }));
     
     // Apply theme immediately
+    applyTheme(settings.theme);
+  };
+  
+  // Function to apply theme changes
+  const applyTheme = (theme: 'light' | 'dark' | 'system') => {
     if (theme === 'light') {
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     } else if (theme === 'dark') {
       document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     } else {
       // System preference
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      localStorage.setItem('theme', 'system');
+      
       if (prefersDark) {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
       }
     }
+  };
+  
+  // Handle theme change
+  const handleThemeChange = (theme: 'light' | 'dark' | 'system') => {
+    setSettings(prev => ({ ...prev, theme }));
+    applyTheme(theme);
   };
   
   const handleNotificationChange = (key: keyof typeof settings.notifications, value: boolean) => {
@@ -156,7 +208,7 @@ export default function Settings() {
                   </div>
                   <Switch
                     id="notifications-email"
-                    checked={settings.notifications.email}
+                    checked={settings.notifications?.email || false}
                     onCheckedChange={(value) => handleNotificationChange('email', value)}
                   />
                 </div>
@@ -168,7 +220,7 @@ export default function Settings() {
                   </div>
                   <Switch
                     id="notifications-push"
-                    checked={settings.notifications.push}
+                    checked={settings.notifications?.push || false}
                     onCheckedChange={(value) => handleNotificationChange('push', value)}
                   />
                 </div>
@@ -180,7 +232,7 @@ export default function Settings() {
                   </div>
                   <Switch
                     id="notifications-inapp"
-                    checked={settings.notifications.inApp}
+                    checked={settings.notifications?.inApp || false}
                     onCheckedChange={(value) => handleNotificationChange('inApp', value)}
                   />
                 </div>
@@ -239,7 +291,9 @@ export default function Settings() {
       </Tabs>
       
       <div className="flex justify-end">
-        <Button onClick={saveSettings}>Save Settings</Button>
+        <Button onClick={saveSettings} disabled={isSaving}>
+          {isSaving ? 'Saving...' : 'Save Settings'}
+        </Button>
       </div>
     </div>
   );

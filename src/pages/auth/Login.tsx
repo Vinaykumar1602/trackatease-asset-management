@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart2, Lock, Mail, KeyRound, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,127 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useEffect } from 'react';
+
+// Separate components for better organization
+const LoginForm = ({ email, setEmail, password, setPassword, handleLogin, isLoading }) => (
+  <form onSubmit={handleLogin}>
+    <CardContent className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <div className="relative">
+          <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input 
+            id="email"
+            type="email" 
+            placeholder="name@company.com" 
+            className="pl-10"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="password">Password</Label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input 
+            id="password"
+            type="password" 
+            placeholder="••••••••" 
+            className="pl-10"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+    </CardContent>
+    <CardFooter>
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? 'Processing...' : 'Login'}
+      </Button>
+    </CardFooter>
+  </form>
+);
+
+const SignupForm = ({ 
+  signupName, setSignupName,
+  signupEmail, setSignupEmail,
+  signupPassword, setSignupPassword,
+  signupConfirmPassword, setSignupConfirmPassword,
+  handleSignUp, isLoading 
+}) => (
+  <form onSubmit={handleSignUp}>
+    <CardContent className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="signupName">Full Name</Label>
+        <div className="relative">
+          <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input 
+            id="signupName"
+            type="text" 
+            placeholder="John Doe" 
+            className="pl-10"
+            value={signupName}
+            onChange={(e) => setSignupName(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="signupEmail">Email</Label>
+        <div className="relative">
+          <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input 
+            id="signupEmail"
+            type="email" 
+            placeholder="name@company.com" 
+            className="pl-10"
+            value={signupEmail}
+            onChange={(e) => setSignupEmail(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="signupPassword">Password</Label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input 
+            id="signupPassword"
+            type="password" 
+            placeholder="••••••••" 
+            className="pl-10"
+            value={signupPassword}
+            onChange={(e) => setSignupPassword(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="signupConfirmPassword">Confirm Password</Label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input 
+            id="signupConfirmPassword"
+            type="password" 
+            placeholder="••••••••" 
+            className="pl-10"
+            value={signupConfirmPassword}
+            onChange={(e) => setSignupConfirmPassword(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+    </CardContent>
+    <CardFooter>
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? 'Processing...' : 'Create Account'}
+      </Button>
+    </CardFooter>
+  </form>
+);
 
 export default function Login() {
   const [activeTab, setActiveTab] = useState<string>('login');
@@ -127,6 +247,14 @@ export default function Login() {
                   <CardDescription>
                     Enter your email and password to access your account
                   </CardDescription>
+                  <LoginForm 
+                    email={email}
+                    setEmail={setEmail}
+                    password={password}
+                    setPassword={setPassword}
+                    handleLogin={handleLogin}
+                    isLoading={isLoading}
+                  />
                 </TabsContent>
                 
                 <TabsContent value="signup">
@@ -134,121 +262,19 @@ export default function Login() {
                   <CardDescription>
                     Enter your details to create a new account
                   </CardDescription>
+                  <SignupForm 
+                    signupName={signupName}
+                    setSignupName={setSignupName}
+                    signupEmail={signupEmail}
+                    setSignupEmail={setSignupEmail}
+                    signupPassword={signupPassword}
+                    setSignupPassword={setSignupPassword}
+                    signupConfirmPassword={signupConfirmPassword}
+                    setSignupConfirmPassword={setSignupConfirmPassword}
+                    handleSignUp={handleSignUp}
+                    isLoading={isLoading}
+                  />
                 </TabsContent>
-              
-                {activeTab === "login" && (
-                  <form onSubmit={handleLogin}>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            id="email"
-                            type="email" 
-                            placeholder="name@company.com" 
-                            className="pl-10"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="password">Password</Label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            id="password"
-                            type="password" 
-                            placeholder="••••••••" 
-                            className="pl-10"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter>
-                      <Button type="submit" className="w-full" disabled={isLoading}>
-                        {isLoading ? 'Processing...' : 'Login'}
-                      </Button>
-                    </CardFooter>
-                  </form>
-                )}
-              
-                {activeTab === "signup" && (
-                  <form onSubmit={handleSignUp}>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="signupName">Full Name</Label>
-                        <div className="relative">
-                          <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            id="signupName"
-                            type="text" 
-                            placeholder="John Doe" 
-                            className="pl-10"
-                            value={signupName}
-                            onChange={(e) => setSignupName(e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signupEmail">Email</Label>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            id="signupEmail"
-                            type="email" 
-                            placeholder="name@company.com" 
-                            className="pl-10"
-                            value={signupEmail}
-                            onChange={(e) => setSignupEmail(e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signupPassword">Password</Label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            id="signupPassword"
-                            type="password" 
-                            placeholder="••••••••" 
-                            className="pl-10"
-                            value={signupPassword}
-                            onChange={(e) => setSignupPassword(e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signupConfirmPassword">Confirm Password</Label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            id="signupConfirmPassword"
-                            type="password" 
-                            placeholder="••••••••" 
-                            className="pl-10"
-                            value={signupConfirmPassword}
-                            onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter>
-                      <Button type="submit" className="w-full" disabled={isLoading}>
-                        {isLoading ? 'Processing...' : 'Create Account'}
-                      </Button>
-                    </CardFooter>
-                  </form>
-                )}
               </Tabs>
             </div>
           </CardHeader>

@@ -13,4 +13,6 @@ export interface Asset {
   currentValue?: number;
   lastMaintenance?: string;
   nextMaintenance?: string;
+  // Supabase UUID for database operations
+  supabaseId?: string;
 }

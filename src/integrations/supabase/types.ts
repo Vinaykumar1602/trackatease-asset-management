@@ -9,7 +9,266 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      assets: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          created_at: string | null
+          created_by: string
+          current_value: number | null
+          id: string
+          last_maintenance: string | null
+          location: string | null
+          name: string
+          next_maintenance: string | null
+          purchase_date: string | null
+          purchase_value: number | null
+          qr_code_url: string | null
+          serial: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          category: string
+          created_at?: string | null
+          created_by: string
+          current_value?: number | null
+          id?: string
+          last_maintenance?: string | null
+          location?: string | null
+          name: string
+          next_maintenance?: string | null
+          purchase_date?: string | null
+          purchase_value?: number | null
+          qr_code_url?: string | null
+          serial?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string | null
+          created_by?: string
+          current_value?: number | null
+          id?: string
+          last_maintenance?: string | null
+          location?: string | null
+          name?: string
+          next_maintenance?: string | null
+          purchase_date?: string | null
+          purchase_value?: number | null
+          qr_code_url?: string | null
+          serial?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inventory: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string
+          id: string
+          last_restock: string | null
+          location: string | null
+          min_quantity: number | null
+          name: string
+          quantity: number
+          sku: string | null
+          supplier: string | null
+          unit_price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by: string
+          id?: string
+          last_restock?: string | null
+          location?: string | null
+          min_quantity?: number | null
+          name: string
+          quantity?: number
+          sku?: string | null
+          supplier?: string | null
+          unit_price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          last_restock?: string | null
+          location?: string | null
+          min_quantity?: number | null
+          name?: string
+          quantity?: number
+          sku?: string | null
+          supplier?: string | null
+          unit_price?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          read?: boolean
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          department: string | null
+          email: string
+          id: string
+          name: string | null
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          department?: string | null
+          email: string
+          id: string
+          name?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          department?: string | null
+          email?: string
+          id?: string
+          name?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sales: {
+        Row: {
+          amount: number
+          created_at: string | null
+          created_by: string
+          customer_name: string
+          id: string
+          product_name: string
+          quantity: number
+          sale_date: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          created_by: string
+          customer_name: string
+          id?: string
+          product_name: string
+          quantity: number
+          sale_date?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          created_by?: string
+          customer_name?: string
+          id?: string
+          product_name?: string
+          quantity?: number
+          sale_date?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      service_requests: {
+        Row: {
+          asset_id: string | null
+          assigned_to: string | null
+          completion_date: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          priority: string
+          requested_by: string
+          scheduled_date: string | null
+          status: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          asset_id?: string | null
+          assigned_to?: string | null
+          completion_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          priority?: string
+          requested_by: string
+          scheduled_date?: string | null
+          status?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          asset_id?: string | null
+          assigned_to?: string | null
+          completion_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          priority?: string
+          requested_by?: string
+          scheduled_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requests_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

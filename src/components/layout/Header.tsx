@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Menu, Search, Settings, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ import { NotificationPopover } from '../notifications/NotificationPopover';
 export default function Header() {
   const isMobile = useIsMobile();
   const [searchValue, setSearchValue] = useState("");
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
 
   const getInitials = (name: string) => {
@@ -68,17 +68,18 @@ export default function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar className="h-8 w-8">
+                <AvatarImage src={profile?.avatar_url} />
                 <AvatarFallback className="bg-primary text-white">
-                  {user ? getInitials(user.name) : 'TA'}
+                  {profile ? getInitials(profile.name) : 'TA'}
                 </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
-              {user ? user.name : 'Account'}
-              {user && (
-                <p className="text-xs text-muted-foreground mt-1">{user.role}</p>
+              {profile ? profile.name : user?.email || 'Account'}
+              {profile && profile.role && (
+                <p className="text-xs text-muted-foreground mt-1 capitalize">{profile.role}</p>
               )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -91,7 +92,7 @@ export default function Header() {
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-red-600">
+            <DropdownMenuItem onClick={() => logout()} className="text-red-600">
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </DropdownMenuItem>

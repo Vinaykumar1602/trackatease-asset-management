@@ -1,83 +1,104 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart2, Lock, Mail, KeyRound } from 'lucide-react';
+import { BarChart2, Lock, Mail, KeyRound, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useEffect } from 'react';
 
 export default function Login() {
+  const [activeTab, setActiveTab] = useState<string>('login');
+  
+  // Login state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  
+  // Sign up state
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupName, setSignupName] = useState('');
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
+  
   const [isLoading, setIsLoading] = useState(false);
-  const [showOTP, setShowOTP] = useState(false);
-  const [otp, setOTP] = useState('');
-  const { login } = useAuth();
+  
+  const { login, signUp, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // If user is already authenticated, redirect to dashboard
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (showOTP) {
-      // Verify OTP and complete login
-      if (otp === '123456') { // In a real app, this would be validated against a server
-        setIsLoading(true);
-        const success = await login(email, password);
-        setIsLoading(false);
-        
-        if (success) {
-          navigate('/dashboard');
-        } else {
-          toast({
-            title: "Authentication failed",
-            description: "Please try again with correct credentials.",
-            variant: "destructive"
-          });
-          setShowOTP(false);
-        }
-      } else {
-        toast({
-          title: "Invalid OTP",
-          description: "The OTP you entered is incorrect. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } else {
-      // First step: validate credentials and request OTP
-      setIsLoading(true);
-      
-      // Simulate OTP generation
-      setTimeout(() => {
-        setIsLoading(false);
-        
-        // Here we're simulating the first authentication step
-        // In a real app, this would verify the credentials and send an OTP
-        if (
-          (email === 'admin@trackatease.com' && password === 'admin123') ||
-          (email === 'john@trackatease.com' && password === 'john123')
-        ) {
-          setShowOTP(true);
-          toast({
-            title: "OTP Sent",
-            description: "A one-time password has been sent to your email address.",
-          });
-        } else {
-          toast({
-            title: "Invalid credentials",
-            description: "Please check your email and password and try again.",
-            variant: "destructive"
-          });
-        }
-      }, 1000);
+    if (!email || !password) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all the required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    const result = await login(email, password);
+    setIsLoading(false);
+    
+    if (result.success) {
+      navigate('/dashboard');
+    }
+  };
+  
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!signupEmail || !signupPassword || !signupName || !signupConfirmPassword) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all the required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (signupPassword !== signupConfirmPassword) {
+      toast({
+        title: "Password mismatch",
+        description: "Passwords do not match",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (signupPassword.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    const result = await signUp(signupEmail, signupPassword, signupName);
+    setIsLoading(false);
+    
+    if (result.success) {
+      setActiveTab('login');
+      setEmail(signupEmail);
+      setSignupEmail('');
+      setSignupPassword('');
+      setSignupName('');
+      setSignupConfirmPassword('');
     }
   };
 
@@ -94,95 +115,144 @@ export default function Login() {
 
         <Card className="w-full">
           <CardHeader>
-            <CardTitle>{showOTP ? "Enter Verification Code" : "Login to your account"}</CardTitle>
-            <CardDescription>
-              {showOTP 
-                ? "Enter the 6-digit code sent to your email"
-                : "Enter your email and password to access your account"}
-            </CardDescription>
+            <div className="w-full mb-4">
+              <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="login">Login</TabsTrigger>
+                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="login">
+                  <CardTitle>Login to your account</CardTitle>
+                  <CardDescription>
+                    Enter your email and password to access your account
+                  </CardDescription>
+                </TabsContent>
+                
+                <TabsContent value="signup">
+                  <CardTitle>Create a new account</CardTitle>
+                  <CardDescription>
+                    Enter your details to create a new account
+                  </CardDescription>
+                </TabsContent>
+              </Tabs>
+            </div>
           </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              {!showOTP ? (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="email"
-                        type="email" 
-                        placeholder="name@company.com" 
-                        className="pl-10"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
-                    </div>
+          
+          <TabsContent value="login">
+            <form onSubmit={handleLogin}>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="email"
+                      type="email" 
+                      placeholder="name@company.com" 
+                      className="pl-10"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="password"
-                        type="password" 
-                        placeholder="••••••••" 
-                        className="pl-10"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-4">
-                  <div className="mx-auto flex items-center justify-center">
-                    <KeyRound className="h-8 w-8 text-muted-foreground mb-4" />
-                  </div>
-                  <div className="flex justify-center">
-                    <InputOTP 
-                      maxLength={6} 
-                      value={otp}
-                      onChange={setOTP}
-                    >
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
-                      </InputOTPGroup>
-                    </InputOTP>
-                  </div>
-                  <p className="text-center text-sm text-muted-foreground">
-                    Didn't receive the code? <Button variant="link" type="button" className="p-0" onClick={() => toast({ title: "New code sent" })}>Resend</Button>
-                  </p>
                 </div>
-              )}
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" className="w-full" disabled={isLoading || (showOTP && otp.length !== 6)}>
-                {isLoading 
-                  ? 'Processing...' 
-                  : showOTP 
-                    ? 'Verify & Sign in' 
-                    : 'Continue'}
-              </Button>
-            </CardFooter>
-          </form>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="password"
+                      type="password" 
+                      placeholder="••••••••" 
+                      className="pl-10"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? 'Processing...' : 'Login'}
+                </Button>
+              </CardFooter>
+            </form>
+          </TabsContent>
+          
+          <TabsContent value="signup">
+            <form onSubmit={handleSignUp}>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signupName">Full Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="signupName"
+                      type="text" 
+                      placeholder="John Doe" 
+                      className="pl-10"
+                      value={signupName}
+                      onChange={(e) => setSignupName(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signupEmail">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="signupEmail"
+                      type="email" 
+                      placeholder="name@company.com" 
+                      className="pl-10"
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signupPassword">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="signupPassword"
+                      type="password" 
+                      placeholder="••••••••" 
+                      className="pl-10"
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signupConfirmPassword">Confirm Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="signupConfirmPassword"
+                      type="password" 
+                      placeholder="••••••••" 
+                      className="pl-10"
+                      value={signupConfirmPassword}
+                      onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? 'Processing...' : 'Create Account'}
+                </Button>
+              </CardFooter>
+            </form>
+          </TabsContent>
         </Card>
-        
-        {!showOTP && (
-          <div className="text-center text-sm text-muted-foreground">
-            <p className="mt-4">Demo accounts:</p>
-            <p>Email: admin@trackatease.com | Password: admin123</p>
-            <p>Email: john@trackatease.com | Password: john123</p>
-            <p className="mt-2 text-xs">Note: Use code 123456 for OTP verification in this demo</p>
-          </div>
-        )}
       </div>
     </div>
   );

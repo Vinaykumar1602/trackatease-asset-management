@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -16,9 +17,7 @@ import {
   Plus, 
   Search,
   Filter,
-  QrCode,
-  CheckCircle,
-  XCircle
+  Loader2
 } from "lucide-react";
 import {
   Dialog,
@@ -43,16 +42,32 @@ import { QrScanDialog } from "./components/QrScanDialog";
 import { AssetEditDialog } from "./components/AssetEditDialog";
 import { AssetViewDialog } from "./components/AssetViewDialog";
 import { Asset } from "./types";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
+
+interface SupabaseAsset {
+  id: string;
+  name: string;
+  category: string;
+  serial: string;
+  location: string;
+  assigned_to: string;
+  status: string;
+  qr_code_url?: string;
+  purchase_date?: string;
+  purchase_value?: number;
+  current_value?: number;
+  last_maintenance?: string;
+  next_maintenance?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function AssetManagement() {
-  const [assets, setAssets] = useState<Asset[]>([
-    { id: 1, name: "Desktop Computer", category: "IT Equipment", serial: "COMP-2023-001", location: "Main Office", assignedTo: "John Smith", status: "Active" },
-    { id: 2, name: "Printer X500", category: "Office Equipment", serial: "PRINT-2023-002", location: "Finance Dept", assignedTo: "Finance Team", status: "Under Repair" },
-    { id: 3, name: "Server Rack", category: "IT Infrastructure", serial: "SRV-2023-003", location: "Server Room", assignedTo: "IT Department", status: "Active" },
-    { id: 4, name: "HVAC System", category: "Building Equipment", serial: "HVAC-2022-004", location: "Building A", assignedTo: "Facilities", status: "Active" },
-    { id: 5, name: "Company Car", category: "Vehicles", serial: "CAR-2023-005", location: "Parking Lot", assignedTo: "Sales Team", status: "Active" }
-  ]);
-
+  const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
+  
   const [newAsset, setNewAsset] = useState<Omit<Asset, 'id'>>({
     name: "",
     category: "IT Equipment",
@@ -76,6 +91,161 @@ export default function AssetManagement() {
 
   const { toast } = useToast();
 
+  const { data: supabaseAssets, isLoading, error } = useQuery({
+    queryKey: ['assets'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('assets')
+        .select('*');
+        
+      if (error) {
+        throw error;
+      }
+      
+      return data as SupabaseAsset[];
+    }
+  });
+  
+  const assets: Asset[] = (supabaseAssets || []).map(asset => ({
+    id: parseInt(asset.id.substring(0, 8), 16),
+    name: asset.name,
+    category: asset.category,
+    serial: asset.serial || "",
+    location: asset.location || "",
+    assignedTo: asset.assigned_to || "",
+    status: asset.status,
+    qrCodeUrl: asset.qr_code_url,
+    purchaseDate: asset.purchase_date,
+    purchaseValue: asset.purchase_value,
+    currentValue: asset.current_value,
+    lastMaintenance: asset.last_maintenance,
+    nextMaintenance: asset.next_maintenance,
+    supabaseId: asset.id
+  }));
+
+  const addAssetMutation = useMutation({
+    mutationFn: async (asset: Omit<Asset, 'id'>) => {
+      if (!user?.id) throw new Error("User not authenticated");
+      
+      const { data, error } = await supabase
+        .from('assets')
+        .insert({
+          name: asset.name,
+          category: asset.category,
+          serial: asset.serial,
+          location: asset.location,
+          assigned_to: asset.assignedTo,
+          status: asset.status,
+          qr_code_url: asset.qrCodeUrl,
+          purchase_date: asset.purchaseDate,
+          purchase_value: asset.purchaseValue,
+          current_value: asset.currentValue,
+          last_maintenance: asset.lastMaintenance,
+          next_maintenance: asset.nextMaintenance,
+          created_by: user.id
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      setIsDialogOpen(false);
+      setNewAsset({
+        name: "",
+        category: "IT Equipment",
+        serial: "",
+        location: "",
+        assignedTo: "",
+        status: "Active"
+      });
+      toast({
+        title: "Asset Added",
+        description: "The asset has been added successfully."
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to add asset: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+  
+  const editAssetMutation = useMutation({
+    mutationFn: async (asset: Asset) => {
+      const { data, error } = await supabase
+        .from('assets')
+        .update({
+          name: asset.name,
+          category: asset.category,
+          serial: asset.serial,
+          location: asset.location,
+          assigned_to: asset.assignedTo,
+          status: asset.status,
+          qr_code_url: asset.qrCodeUrl,
+          purchase_date: asset.purchaseDate,
+          purchase_value: asset.purchaseValue,
+          current_value: asset.currentValue,
+          last_maintenance: asset.lastMaintenance,
+          next_maintenance: asset.nextMaintenance,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', asset.supabaseId)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      setEditingAsset(null);
+      toast({
+        title: "Asset Updated",
+        description: "The asset has been updated successfully."
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update asset: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+  
+  const deleteAssetMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('assets')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      setEditingAsset(null);
+      toast({
+        title: "Asset Deleted",
+        description: "The asset has been deleted successfully."
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete asset: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const canManageAssets = profile?.role === 'admin' || profile?.role === 'inventory_manager';
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewAsset(prev => ({ ...prev, [name]: value }));
@@ -95,47 +265,24 @@ export default function AssetManagement() {
       return;
     }
 
-    const id = assets.length > 0 ? Math.max(...assets.map(a => a.id)) + 1 : 1;
-    const assetToAdd = { ...newAsset, id };
-    
-    setAssets(prev => [...prev, assetToAdd]);
-    setIsDialogOpen(false);
-    
-    setNewAsset({
-      name: "",
-      category: "IT Equipment",
-      serial: "",
-      location: "",
-      assignedTo: "",
-      status: "Active"
-    });
-    
-    toast({
-      title: "Asset Added",
-      description: `${assetToAdd.name} has been added to your assets.`
-    });
+    addAssetMutation.mutate(newAsset);
   };
 
   const handleEditAsset = (updatedAsset: Asset) => {
-    setAssets(prev => prev.map(asset => 
-      asset.id === updatedAsset.id ? updatedAsset : asset
-    ));
-    
-    setEditingAsset(null);
-    
-    toast({
-      title: "Asset Updated",
-      description: `${updatedAsset.name} has been updated.`
-    });
+    editAssetMutation.mutate(updatedAsset);
   };
 
-  const handleDeleteAsset = (id: number) => {
-    setAssets(prev => prev.filter(asset => asset.id !== id));
+  const handleDeleteAsset = (supabaseId: string) => {
+    if (!supabaseId) {
+      toast({
+        title: "Error",
+        description: "Cannot delete asset without valid ID.",
+        variant: "destructive"
+      });
+      return;
+    }
     
-    toast({
-      title: "Asset Deleted",
-      description: "The asset has been removed from your inventory."
-    });
+    deleteAssetMutation.mutate(supabaseId);
   };
 
   const handleExportAssets = () => {
@@ -165,12 +312,12 @@ export default function AssetManagement() {
     });
   };
 
-  const handleImportAssets = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportAssets = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user?.id) return;
     
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const text = event.target?.result as string;
         const rows = text.split('\n').filter(row => row.trim());
@@ -179,26 +326,35 @@ export default function AssetManagement() {
         const importedAssets = rows.slice(1).map(row => {
           const values = row.split(',');
           return {
-            id: assets.length > 0 ? Math.max(...assets.map(a => a.id)) + 1 : 1,
             name: values[1] || "",
             category: values[2] || "IT Equipment",
             serial: values[3] || "",
             location: values[4] || "",
-            assignedTo: values[5] || "",
-            status: values[6] || "Active"
+            assigned_to: values[5] || "",
+            status: values[6] || "Active",
+            created_by: user.id
           };
         });
         
-        setAssets(prev => [...prev, ...importedAssets]);
+        const { data, error } = await supabase
+          .from('assets')
+          .insert(importedAssets)
+          .select();
+          
+        if (error) {
+          throw error;
+        }
+        
+        queryClient.invalidateQueries({ queryKey: ['assets'] });
         
         toast({
           title: "Import Successful",
           description: `${importedAssets.length} assets have been imported.`
         });
-      } catch (error) {
+      } catch (error: any) {
         toast({
           title: "Import Failed",
-          description: "There was an error importing the file. Please check the format.",
+          description: error.message || "There was an error importing the file.",
           variant: "destructive"
         });
       }
@@ -245,6 +401,17 @@ export default function AssetManagement() {
     return matchesSearch && matchesCategory && matchesStatus && matchesLocation;
   });
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh]">
+        <p className="text-red-500 text-center mb-4">Error loading assets: {(error as Error).message}</p>
+        <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['assets'] })}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -257,7 +424,7 @@ export default function AssetManagement() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={!canManageAssets}>
             <Upload className="h-4 w-4 mr-2" />
             Import
             <input
@@ -266,11 +433,12 @@ export default function AssetManagement() {
               accept=".csv"
               className="hidden"
               onChange={handleImportAssets}
+              disabled={!canManageAssets}
             />
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" disabled={!canManageAssets}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Asset
               </Button>
@@ -417,7 +585,16 @@ export default function AssetManagement() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredAssets.length === 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-10">
+                  <div className="flex justify-center items-center">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span>Loading assets...</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : filteredAssets.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
                   No assets found. Add a new asset or adjust your filters.
@@ -450,6 +627,7 @@ export default function AssetManagement() {
                       variant="ghost" 
                       size="sm" 
                       onClick={() => setEditingAsset(asset)}
+                      disabled={!canManageAssets}
                     >
                       Edit
                     </Button>
@@ -472,7 +650,7 @@ export default function AssetManagement() {
         <AssetEditDialog
           asset={editingAsset}
           onSave={handleEditAsset}
-          onDelete={handleDeleteAsset}
+          onDelete={() => handleDeleteAsset(editingAsset.supabaseId!)}
           onCancel={() => setEditingAsset(null)}
         />
       )}

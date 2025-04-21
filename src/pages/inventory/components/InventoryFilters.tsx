@@ -62,7 +62,7 @@ export function InventoryFilters({
           </SelectTrigger>
           <SelectContent>
             {locations.map(loc => (
-              <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+              <SelectItem key={loc} value={loc || "unknown"}>{loc || "Unknown Location"}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -76,7 +76,7 @@ export function InventoryFilters({
           </SelectTrigger>
           <SelectContent>
             {categories.map(cat => (
-              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              <SelectItem key={cat} value={cat || "unknown"}>{cat || "Unknown Category"}</SelectItem>
             ))}
           </SelectContent>
         </Select>

@@ -29,8 +29,12 @@ export default function InventoryTracking() {
 
   const { handleExport } = useExportInventory();
   
-  const locations = ["All", ...new Set(inventoryItems.map(item => item.location))];
-  const categories = ["All", ...new Set(inventoryItems.map(item => item.category))];
+  // Filter out empty strings before creating Sets
+  const rawLocations = inventoryItems.map(item => item.location).filter(Boolean);
+  const rawCategories = inventoryItems.map(item => item.category).filter(Boolean);
+  
+  const locations = ["All", ...new Set(rawLocations)];
+  const categories = ["All", ...new Set(rawCategories)];
 
   const filteredItems = inventoryItems.filter(item => {
     const matchesSearch = searchQuery === "" || 

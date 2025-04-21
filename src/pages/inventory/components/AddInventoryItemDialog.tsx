@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,7 +24,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 
-// Define InventoryItem type directly here instead of importing from @/types
 export interface InventoryItem {
   id: number;
   name: string;
@@ -35,6 +33,7 @@ export interface InventoryItem {
   minLevel: number;
   location: string;
   status: "In Stock" | "Low Stock" | "Out of Stock";
+  supabaseId?: string;
 }
 
 const formSchema = z.object({
@@ -85,14 +84,13 @@ export function AddInventoryItemDialog({
     
     const newItem: Omit<InventoryItem, "id" | "status"> = {
       sku: data.sku,
-      name: data.name || "", // Ensure name is not optional
+      name: data.name || "",
       category: data.category || "",
       location: data.location || "",
       quantity: data.quantity || 0,
       minLevel: data.minLevel || 0
     };
     
-    // Call the appropriate handler function
     if (onAddItem) {
       onAddItem(newItem);
     } else {

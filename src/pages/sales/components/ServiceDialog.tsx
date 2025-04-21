@@ -16,6 +16,8 @@ import { useState } from "react";
 import { SalesItem, ServiceFormData } from "../types";
 import { useToast } from "@/components/ui/use-toast";
 import { Wrench } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
 
 interface ServiceDialogProps {
   saleItem: SalesItem;
@@ -35,13 +37,23 @@ export function ServiceDialogTrigger({ saleItem, onSave }: ServiceDialogProps) {
   });
   
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to add service records",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (!formData.date || !formData.technician || !formData.description) {
       toast({
         title: "Missing required fields",
@@ -51,26 +63,61 @@ export function ServiceDialogTrigger({ saleItem, onSave }: ServiceDialogProps) {
       return;
     }
     
-    if (onSave) {
-      onSave(formData);
+    try {
+      // Save to Supabase
+      const { data, error } = await supabase
+        .from('service_records')
+        .insert({
+          sale_id: formData.saleId,
+          service_date: formData.date,
+          technician: formData.technician,
+          description: formData.description,
+          parts_used: formData.partsUsed || null,
+          next_service_due: formData.nextServiceDue || null,
+          remarks: formData.remarks || null,
+          created_by: user.id
+        })
+        .select();
+        
+      if (error) throw error;
+      
+      // Update the sale with the latest service information
+      await supabase
+        .from('sales')
+        .update({
+          last_service: formData.date,
+          last_service_notes: formData.description
+        })
+        .eq('id', formData.saleId);
+      
+      if (onSave && data) {
+        onSave(formData);
+      }
+      
+      toast({
+        title: "Service Record Added",
+        description: `Service record has been added for ${saleItem.productName}.`
+      });
+      
+      // Reset form and close dialog
+      setIsOpen(false);
+      setFormData({
+        saleId: saleItem.id,
+        date: new Date().toISOString().split('T')[0],
+        technician: "",
+        description: "",
+        partsUsed: "",
+        nextServiceDue: "",
+        remarks: ""
+      });
+    } catch (error) {
+      console.error("Error adding service record:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add service record",
+        variant: "destructive"
+      });
     }
-    
-    toast({
-      title: "Service Record Added",
-      description: `Service record has been added for ${saleItem.productName}.`
-    });
-    
-    // Reset form and close dialog
-    setIsOpen(false);
-    setFormData({
-      saleId: saleItem.id,
-      date: new Date().toISOString().split('T')[0],
-      technician: "",
-      description: "",
-      partsUsed: "",
-      nextServiceDue: "",
-      remarks: ""
-    });
   };
 
   return (

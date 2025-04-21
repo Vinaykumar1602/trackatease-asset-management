@@ -1,5 +1,4 @@
-
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Wrench,
@@ -37,9 +36,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
 
 export interface ServiceItem {
-  id: number;
+  id: string;
   client: string;
   product: string;
   serialNo: string;
@@ -51,167 +52,346 @@ export interface ServiceItem {
 
 export default function ServiceManagement() {
   // State for service items
-  const [serviceItems, setServiceItems] = useState<ServiceItem[]>([
-    { 
-      id: 1, 
-      client: "ABC Corporation", 
-      product: "Server System X1",
-      serialNo: "SRV-X1-2023-001", 
-      scheduledDate: "2023-07-15",
-      technician: "Mike Johnson",
-      status: "Scheduled",
-      slaStatus: "Within SLA"
-    },
-    { 
-      id: 2, 
-      client: "XYZ Inc", 
-      product: "Network Switch N500",
-      serialNo: "NSW-N500-2023-002", 
-      scheduledDate: "2023-07-17",
-      technician: "Sarah Wilson",
-      status: "Pending",
-      slaStatus: "Within SLA"
-    },
-    { 
-      id: 3, 
-      client: "123 Solutions", 
-      product: "Security Camera System",
-      serialNo: "CAM-S1-2023-003", 
-      scheduledDate: "2023-07-10",
-      technician: "David Brown",
-      status: "Completed",
-      slaStatus: "Met"
-    },
-    { 
-      id: 4, 
-      client: "City Mall", 
-      product: "Digital Signage System",
-      serialNo: "DSS-2022-004", 
-      scheduledDate: "2023-07-05",
-      technician: "Unassigned",
-      status: "Overdue",
-      slaStatus: "SLA Violated"
-    }
-  ]);
+  const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
+  const [serviceHistory, setServiceHistory] = useState<ServiceRecord[]>([]);
   
   // State for search and filters
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [editingService, setEditingService] = useState<ServiceItem | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
-  
-  // State for service history
-  const [serviceHistory, setServiceHistory] = useState<ServiceRecord[]>([
-    {
-      id: 1,
-      saleId: 1,
-      date: "Mar 10, 2023",
-      technician: "Mike Johnson",
-      description: "Initial setup and configuration",
-      partsUsed: "None",
-      nextServiceDue: "Jun 10, 2023"
-    },
-    {
-      id: 2,
-      saleId: 1,
-      date: "Jun 15, 2023",
-      technician: "Mike Johnson",
-      description: "Quarterly maintenance",
-      partsUsed: "Cooling fan",
-      nextServiceDue: "Sep 15, 2023"
-    },
-    {
-      id: 3,
-      saleId: 2,
-      date: "May 10, 2023",
-      technician: "Sarah Wilson",
-      description: "Firmware update",
-      partsUsed: "None",
-      nextServiceDue: "Aug 10, 2023"
-    }
-  ]);
+  const [loading, setLoading] = useState(true);
   
   // Ref for file upload
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      fetchServiceItems();
+      fetchServiceHistory();
+    }
+  }, [user?.id]);
+
+  const fetchServiceItems = async () => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('service_requests')
+        .select(`
+          *,
+          sales:asset_id (
+            product_name,
+            customer_name,
+            serial_no
+          )
+        `);
+        
+      if (error) throw error;
+      
+      if (data) {
+        const formattedItems: ServiceItem[] = data.map(item => ({
+          id: item.id,
+          client: item.sales?.customer_name || "Unknown Client",
+          product: item.sales?.product_name || item.title,
+          serialNo: item.sales?.serial_no || "N/A",
+          scheduledDate: item.scheduled_date ? new Date(item.scheduled_date).toISOString().split('T')[0] : "Not scheduled",
+          technician: item.assigned_to ? "Assigned" : "Unassigned",
+          status: item.status || "Pending",
+          slaStatus: determineSlaStatus(item.scheduled_date, item.status)
+        }));
+        
+        setServiceItems(formattedItems);
+      }
+    } catch (error) {
+      console.error("Error fetching service items:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load service data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchServiceHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('service_records')
+        .select('*');
+        
+      if (error) throw error;
+      
+      if (data) {
+        const formattedHistory: ServiceRecord[] = data.map(record => ({
+          id: record.id,
+          saleId: record.sale_id,
+          date: new Date(record.service_date).toISOString().split('T')[0],
+          technician: record.technician || "Unknown",
+          description: record.description || "",
+          partsUsed: record.parts_used || "None",
+          nextServiceDue: record.next_service_due ? new Date(record.next_service_due).toISOString().split('T')[0] : ""
+        }));
+        
+        setServiceHistory(formattedHistory);
+      }
+    } catch (error) {
+      console.error("Error fetching service history:", error);
+    }
+  };
+  
+  const determineSlaStatus = (scheduledDate: string, status: string) => {
+    if (!scheduledDate || status === "Completed") return "Met";
+    
+    const scheduled = new Date(scheduledDate);
+    const today = new Date();
+    
+    if (status === "Overdue" || (scheduled < today && status !== "Completed")) {
+      return "SLA Violated";
+    }
+    
+    return "Within SLA";
+  };
   
   // Handle scheduling a new service
-  const handleScheduleService = (newService: Omit<ServiceItem, 'id' | 'slaStatus'>) => {
-    const id = serviceItems.length > 0 ? Math.max(...serviceItems.map(item => item.id)) + 1 : 1;
-    const slaStatus = "Within SLA"; // Default for new services
-    
-    const serviceToAdd = { ...newService, id, slaStatus };
-    setServiceItems(prev => [...prev, serviceToAdd]);
-    
-    toast({
-      title: "Service Scheduled",
-      description: `Service for ${serviceToAdd.product} has been scheduled for ${serviceToAdd.scheduledDate}.`
-    });
+  const handleScheduleService = async (newService: Omit<ServiceItem, 'id' | 'slaStatus'>) => {
+    try {
+      if (!user?.id) return;
+      
+      // Find the asset_id based on serialNo if available
+      let assetId = null;
+      
+      if (newService.serialNo && newService.serialNo !== "N/A") {
+        const { data: assetData } = await supabase
+          .from('sales')
+          .select('id')
+          .eq('serial_no', newService.serialNo)
+          .single();
+          
+        if (assetData) {
+          assetId = assetData.id;
+        }
+      }
+      
+      const { data, error } = await supabase
+        .from('service_requests')
+        .insert({
+          title: newService.product,
+          scheduled_date: newService.scheduledDate,
+          assigned_to: newService.technician !== "Unassigned" ? newService.technician : null,
+          status: newService.status,
+          asset_id: assetId,
+          requested_by: user.id
+        })
+        .select();
+        
+      if (error) throw error;
+      
+      if (data && data[0]) {
+        const slaStatus = determineSlaStatus(newService.scheduledDate, newService.status);
+        
+        const serviceToAdd: ServiceItem = {
+          ...newService,
+          id: data[0].id,
+          slaStatus
+        };
+        
+        setServiceItems(prev => [...prev, serviceToAdd]);
+        
+        toast({
+          title: "Service Scheduled",
+          description: `Service for ${serviceToAdd.product} has been scheduled for ${serviceToAdd.scheduledDate}.`
+        });
+      }
+    } catch (error) {
+      console.error("Error scheduling service:", error);
+      toast({
+        title: "Error",
+        description: "Failed to schedule service",
+        variant: "destructive"
+      });
+    }
   };
   
-  const handleEditService = (updatedService: ServiceItem) => {
-    setServiceItems(prev => prev.map(item => 
-      item.id === updatedService.id ? updatedService : item
-    ));
-    
-    // Add to history if status is changed to Completed
-    if (updatedService.status === "Completed" && editingService?.status !== "Completed") {
-      const historyId = serviceHistory.length > 0 
-        ? Math.max(...serviceHistory.map(item => item.id)) + 1 
-        : 1;
+  const handleEditService = async (updatedService: ServiceItem) => {
+    try {
+      // Find the asset_id based on serialNo if available
+      let assetId = null;
       
-      const newHistoryRecord: ServiceRecord = {
-        id: historyId,
-        saleId: updatedService.id,
-        date: updatedService.scheduledDate,
-        technician: updatedService.technician,
-        description: `Service completed for ${updatedService.product}`,
-        partsUsed: "None", // This would be updated in the edit dialog
-        nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
-      };
+      if (updatedService.serialNo && updatedService.serialNo !== "N/A") {
+        const { data: assetData } = await supabase
+          .from('sales')
+          .select('id')
+          .eq('serial_no', updatedService.serialNo)
+          .single();
+          
+        if (assetData) {
+          assetId = assetData.id;
+        }
+      }
       
-      setServiceHistory(prev => [...prev, newHistoryRecord]);
+      const { error } = await supabase
+        .from('service_requests')
+        .update({
+          title: updatedService.product,
+          scheduled_date: updatedService.scheduledDate,
+          assigned_to: updatedService.technician !== "Unassigned" ? updatedService.technician : null,
+          status: updatedService.status,
+          asset_id: assetId,
+          completion_date: updatedService.status === "Completed" ? new Date().toISOString() : null
+        })
+        .eq('id', updatedService.id);
+        
+      if (error) throw error;
+      
+      setServiceItems(prev => prev.map(item => 
+        item.id === updatedService.id ? updatedService : item
+      ));
+      
+      // Add to history if status is changed to Completed
+      if (updatedService.status === "Completed" && editingService?.status !== "Completed") {
+        // Create a service record if service is completed
+        await handleAddServiceRecord(updatedService);
+      }
+      
+      setEditingService(null);
+      
+      toast({
+        title: "Service Updated",
+        description: `Service details for ${updatedService.product} have been updated.`
+      });
+    } catch (error) {
+      console.error("Error updating service:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update service",
+        variant: "destructive"
+      });
     }
-    
-    setEditingService(null);
-    
-    toast({
-      title: "Service Updated",
-      description: `Service details for ${updatedService.product} have been updated.`
-    });
   };
   
-  const handleCompleteService = (id: number) => {
-    setServiceItems(prev => prev.map(item => 
-      item.id === id 
-        ? { ...item, status: "Completed", slaStatus: "Met" } 
-        : item
-    ));
-    
-    const service = serviceItems.find(item => item.id === id);
-    if (service) {
-      const historyId = serviceHistory.length > 0 
-        ? Math.max(...serviceHistory.map(item => item.id)) + 1 
-        : 1;
+  const handleAddServiceRecord = async (service: ServiceItem) => {
+    try {
+      if (!user?.id) return;
       
-      const newHistoryRecord: ServiceRecord = {
-        id: historyId,
-        saleId: service.id,
-        date: new Date().toISOString().split('T')[0],
-        technician: service.technician,
-        description: `Service completed for ${service.product}`,
-        partsUsed: "None",
-        nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
+      // Try to find associated sale record
+      let saleId = null;
+      
+      if (service.serialNo && service.serialNo !== "N/A") {
+        const { data: saleData } = await supabase
+          .from('sales')
+          .select('id')
+          .eq('serial_no', service.serialNo)
+          .single();
+          
+        if (saleData) {
+          saleId = saleData.id;
+        }
+      }
+      
+      if (!saleId) {
+        // If no sale found but there's an asset_id in the service request
+        const { data: serviceData } = await supabase
+          .from('service_requests')
+          .select('asset_id')
+          .eq('id', service.id)
+          .single();
+          
+        if (serviceData && serviceData.asset_id) {
+          saleId = serviceData.asset_id;
+        }
+      }
+      
+      if (!saleId) return; // Can't create a service record without a sale
+      
+      const { data, error } = await supabase
+        .from('service_records')
+        .insert({
+          sale_id: saleId,
+          service_date: new Date().toISOString(),
+          technician: service.technician,
+          description: `Service completed for ${service.product}`,
+          parts_used: "None",
+          next_service_due: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString(),
+          created_by: user.id
+        })
+        .select();
+        
+      if (error) throw error;
+      
+      if (data && data[0]) {
+        const newRecord: ServiceRecord = {
+          id: data[0].id,
+          saleId: data[0].sale_id,
+          date: new Date(data[0].service_date).toISOString().split('T')[0],
+          technician: data[0].technician,
+          description: data[0].description,
+          partsUsed: data[0].parts_used || "None",
+          nextServiceDue: data[0].next_service_due 
+            ? new Date(data[0].next_service_due).toISOString().split('T')[0]
+            : ""
+        };
+        
+        setServiceHistory(prev => [...prev, newRecord]);
+        
+        // Update the last service info on the sale
+        await supabase
+          .from('sales')
+          .update({
+            last_service: new Date().toISOString(),
+            last_service_notes: `Service completed for ${service.product}`
+          })
+          .eq('id', saleId);
+      }
+    } catch (error) {
+      console.error("Error adding service record:", error);
+    }
+  };
+  
+  const handleCompleteService = async (id: string) => {
+    try {
+      const service = serviceItems.find(item => item.id === id);
+      if (!service) return;
+      
+      const { error } = await supabase
+        .from('service_requests')
+        .update({
+          status: "Completed",
+          completion_date: new Date().toISOString()
+        })
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      const updatedService = {
+        ...service,
+        status: "Completed",
+        slaStatus: "Met"
       };
       
-      setServiceHistory(prev => [...prev, newHistoryRecord]);
+      setServiceItems(prev => prev.map(item => 
+        item.id === id ? updatedService : item
+      ));
+      
+      // Add service record to history
+      await handleAddServiceRecord(updatedService);
+      
+      toast({
+        title: "Service Completed",
+        description: "The service has been marked as complete."
+      });
+    } catch (error) {
+      console.error("Error completing service:", error);
+      toast({
+        title: "Error",
+        description: "Failed to complete service",
+        variant: "destructive"
+      });
     }
-    
-    toast({
-      title: "Service Completed",
-      description: "The service has been marked as complete."
-    });
   };
   
   const handleExportServices = () => {
@@ -241,12 +421,12 @@ export default function ServiceManagement() {
     });
   };
   
-  const handleImportServices = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportServices = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user?.id) return;
     
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const text = event.target?.result as string;
         const rows = text.split('\n').filter(row => row.trim());
@@ -256,24 +436,57 @@ export default function ServiceManagement() {
         const importedServices = rows.slice(1).map(row => {
           const values = row.split(',');
           return {
-            id: serviceItems.length > 0 ? Math.max(...serviceItems.map(a => a.id)) + 1 : 1,
             client: values[1] || "",
-            product: values[2] || "",
+            title: values[2] || "", // Product name will be stored as title
             serialNo: values[3] || "",
-            scheduledDate: values[4] || new Date().toISOString().split('T')[0],
+            scheduledDate: values[4] || new Date().toISOString(),
             technician: values[5] || "",
-            status: values[6] || "Scheduled",
-            slaStatus: values[7] || "Within SLA"
+            status: values[6] || "Scheduled"
           };
         });
         
-        setServiceItems(prev => [...prev, ...importedServices]);
+        const validServices = importedServices.filter(service => service.title);
         
-        toast({
-          title: "Import Successful",
-          description: `${importedServices.length} service records have been imported.`
-        });
+        if (validServices.length > 0) {
+          // Insert services into database
+          for (const service of validServices) {
+            // Try to find associated sale/asset
+            let assetId = null;
+            
+            if (service.serialNo) {
+              const { data: assetData } = await supabase
+                .from('sales')
+                .select('id')
+                .eq('serial_no', service.serialNo)
+                .maybeSingle();
+                
+              if (assetData) {
+                assetId = assetData.id;
+              }
+            }
+            
+            await supabase
+              .from('service_requests')
+              .insert({
+                title: service.title,
+                scheduled_date: service.scheduledDate,
+                assigned_to: service.technician !== "Unassigned" ? service.technician : null,
+                status: service.status,
+                asset_id: assetId,
+                requested_by: user.id
+              });
+          }
+          
+          // Refresh the service items
+          fetchServiceItems();
+          
+          toast({
+            title: "Import Successful",
+            description: `${validServices.length} service records have been imported.`
+          });
+        }
       } catch (error) {
+        console.error("Error importing services:", error);
         toast({
           title: "Import Failed",
           description: "There was an error importing the file. Please check the format.",
@@ -289,7 +502,7 @@ export default function ServiceManagement() {
     }
   };
   
-  const handleViewService = (id: number) => {
+  const handleViewService = (id: string) => {
     const service = serviceItems.find(item => item.id === id);
     if (service) {
       setEditingService(service);
@@ -320,6 +533,17 @@ export default function ServiceManagement() {
     
     return matchesSearch && matchesStatus;
   });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p>Loading service data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

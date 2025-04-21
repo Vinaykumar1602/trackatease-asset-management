@@ -1,5 +1,5 @@
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Users, 
@@ -37,59 +37,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function UsersManagement() {
-  const [users, setUsers] = useState<User[]>([
-    { 
-      id: 1, 
-      name: "John Smith", 
-      email: "john.smith@trackatease.com", 
-      role: "Admin", 
-      department: "IT",
-      status: "Active",
-      lastLogin: "Today, 9:32 AM",
-      permissions: ["View Assets", "Edit Assets", "Delete Assets", "View Sales", "Manage Sales", "View Service", "Manage Service", "Generate Reports", "Manage Users"]
-    },
-    { 
-      id: 2, 
-      name: "Jane Doe", 
-      email: "jane.doe@trackatease.com", 
-      role: "Auditor", 
-      department: "Finance",
-      status: "Active",
-      lastLogin: "Yesterday, 4:15 PM",
-      permissions: ["View Assets", "View Sales", "View Service", "Generate Reports"]
-    },
-    { 
-      id: 3, 
-      name: "Mike Johnson", 
-      email: "mike.johnson@trackatease.com", 
-      role: "Technician", 
-      department: "Service",
-      status: "Active",
-      lastLogin: "Jul 10, 10:28 AM",
-      permissions: ["View Assets", "View Service", "Manage Service"]
-    },
-    { 
-      id: 4, 
-      name: "Sarah Wilson", 
-      email: "sarah.wilson@trackatease.com", 
-      role: "Technician", 
-      department: "Service",
-      status: "Active",
-      lastLogin: "Jul 09, 2:47 PM",
-      permissions: ["View Assets", "View Service", "Manage Service"]
-    },
-    { 
-      id: 5, 
-      name: "David Brown", 
-      email: "david.brown@trackatease.com", 
-      role: "Inventory Manager", 
-      department: "Warehouse",
-      status: "Inactive",
-      lastLogin: "Jun 22, 11:05 AM",
-      permissions: ["View Assets", "Edit Assets", "View Sales"]
-    }
-  ]);
-
+  const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -99,80 +47,169 @@ export default function UsersManagement() {
 
   const { user: authUser, isAdmin } = useAuth();
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Load the authenticated user info
   useEffect(() => {
-    const loadAdminUser = async () => {
-      if (!authUser) return;
+    if (authUser) {
+      fetchUsers();
+    }
+  }, [authUser]);
 
-      try {
-        // Check if user exists in the list
-        const existingUser = users.find(u => u.email === authUser.email);
-        
-        if (!existingUser) {
-          // Add the current authenticated user to the list if they're not there
-          const adminUser: User = {
-            id: parseInt(authUser.id.substring(0, 8), 16) || 999, // Convert part of UUID to number for ID
-            name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || "Admin User",
-            email: authUser.email || "",
-            role: "Admin",
-            department: "IT",
-            status: "Active",
-            lastLogin: "Now",
-            permissions: ["View Assets", "Edit Assets", "Delete Assets", "View Sales", "Manage Sales", "View Service", "Manage Service", "Generate Reports", "Manage Users"]
-          };
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      
+      if (!isAdmin) {
+        // If not admin, only load the current user
+        if (authUser) {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authUser.id)
+            .single();
           
-          setUsers(prev => [adminUser, ...prev]);
+          if (profileError) throw profileError;
           
-          toast({
-            title: "Admin User Added",
-            description: `${authUser.email} has been added as an admin user.`
-          });
+          if (profileData) {
+            const userData: User = {
+              id: profileData.id,
+              name: profileData.name || authUser.email?.split('@')[0] || "User",
+              email: profileData.email || authUser.email || "",
+              role: profileData.role || "User",
+              department: profileData.department || "General",
+              status: "Active",
+              lastLogin: "Now",
+              permissions: []
+            };
+            
+            setUsers([userData]);
+          }
         }
+      } else {
+        // Admin can see all users
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*');
+          
+        if (profilesError) throw profilesError;
         
-        console.log("Admin user loaded:", authUser.email);
-        
-      } catch (error) {
-        console.error("Error loading admin user:", error);
-      } finally {
-        setLoading(false);
+        if (profilesData) {
+          const formattedUsers = profilesData.map(profile => ({
+            id: profile.id,
+            name: profile.name || profile.email?.split('@')[0] || "User",
+            email: profile.email || "",
+            role: profile.role || "User",
+            department: profile.department || "General",
+            status: "Active", // Could be fetched from another table if needed
+            lastLogin: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : "Never",
+            permissions: [] // Could be fetched from a permissions table if implemented
+          }));
+          
+          setUsers(formattedUsers);
+        }
       }
-    };
-    
-    loadAdminUser();
-  }, [authUser, toast]);
-
-  const handleAddUser = (userData: Omit<User, "id" | "lastLogin">) => {
-    const id = users.length > 0 ? Math.max(...users.map(user => user.id)) + 1 : 1;
-    const currentDate = new Date();
-    const formattedDate = new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    }).format(currentDate);
-    
-    const newUser: User = {
-      ...userData,
-      id,
-      lastLogin: "Never"
-    };
-    
-    setUsers([...users, newUser]);
-    
-    toast({
-      title: "User Added",
-      description: `${newUser.name} has been added to the system.`
-    });
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleUpdateUser = (updatedUser: User) => {
-    setUsers(prev => prev.map(user => 
-      user.id === updatedUser.id ? updatedUser : user
-    ));
-    setEditingUser(null);
+  const handleAddUser = async (userData: Omit<User, "id" | "lastLogin">) => {
+    try {
+      if (!isAdmin) {
+        toast({
+          title: "Permission Denied",
+          description: "Only administrators can add new users",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // In a real app, you would typically invite the user through auth system
+      // For now, we'll just add their profile
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({
+          email: userData.email,
+          name: userData.name,
+          role: userData.role,
+          department: userData.department
+        })
+        .select();
+      
+      if (error) throw error;
+      
+      if (data && data[0]) {
+        const newUser: User = {
+          ...userData,
+          id: data[0].id,
+          lastLogin: "Never"
+        };
+        
+        setUsers(prev => [...prev, newUser]);
+        
+        toast({
+          title: "User Added",
+          description: `${newUser.name} has been added to the system.`
+        });
+      }
+    } catch (error) {
+      console.error("Error adding user:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add user",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleUpdateUser = async (updatedUser: User) => {
+    try {
+      if (!isAdmin && updatedUser.id !== authUser?.id) {
+        toast({
+          title: "Permission Denied",
+          description: "You can only edit your own profile",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: updatedUser.name,
+          role: updatedUser.role,
+          department: updatedUser.department,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', updatedUser.id);
+      
+      if (error) throw error;
+      
+      setUsers(prev => prev.map(user => 
+        user.id === updatedUser.id ? updatedUser : user
+      ));
+      
+      setEditingUser(null);
+      
+      toast({
+        title: "User Updated",
+        description: "The user profile has been updated."
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update user",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleExportUsers = () => {
@@ -207,7 +244,7 @@ export default function UsersManagement() {
     if (!file) return;
     
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const text = event.target?.result as string;
         const rows = text.split('\n').filter(row => row.trim());
@@ -215,26 +252,50 @@ export default function UsersManagement() {
         const importedUsers = rows.slice(1).map(row => {
           const values = row.split(',');
           return {
-            id: users.length > 0 ? Math.max(...users.map(user => user.id)) + 1 : 1,
-            name: values[1] || "",
             email: values[2] || "",
+            name: values[1] || "",
             role: values[3] || "User",
             department: values[4] || "General",
-            status: values[5] || "Active",
-            lastLogin: "Never",
-            permissions: []
           };
         });
         
         const validUsers = importedUsers.filter(user => user.name && user.email);
         
-        setUsers(prev => [...prev, ...validUsers]);
-        
-        toast({
-          title: "Import Successful",
-          description: `${validUsers.length} users have been imported.`
-        });
+        if (validUsers.length > 0) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .insert(validUsers.map(user => ({
+              email: user.email,
+              name: user.name,
+              role: user.role,
+              department: user.department
+            })))
+            .select();
+          
+          if (error) throw error;
+          
+          if (data) {
+            const newUsers = data.map(item => ({
+              id: item.id,
+              name: item.name,
+              email: item.email,
+              role: item.role,
+              department: item.department,
+              status: "Active",
+              lastLogin: "Never",
+              permissions: []
+            }));
+            
+            setUsers(prev => [...prev, ...newUsers]);
+            
+            toast({
+              title: "Import Successful",
+              description: `${newUsers.length} users have been imported.`
+            });
+          }
+        }
       } catch (error) {
+        console.error("Error importing users:", error);
         toast({
           title: "Import Failed",
           description: "There was an error importing the file. Please check the format.",
@@ -249,14 +310,41 @@ export default function UsersManagement() {
     }
   };
 
-  const handleDeleteUser = (userId: number) => {
-    setUsers(prev => prev.filter(user => user.id !== userId));
-    setDeletingUser(null);
-    
-    toast({
-      title: "User Deleted",
-      description: "The user has been permanently deleted."
-    });
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      if (!isAdmin) {
+        toast({
+          title: "Permission Denied",
+          description: "Only administrators can delete users",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // In a real implementation, this might involve more steps
+      // such as deleting the actual auth user, but for now we just remove the profile
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      setUsers(prev => prev.filter(user => user.id !== userId));
+      setDeletingUser(null);
+      
+      toast({
+        title: "User Deleted",
+        description: "The user has been permanently deleted."
+      });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete user",
+        variant: "destructive"
+      });
+    }
   };
 
   const filteredUsers = users.filter(user => {
@@ -292,11 +380,13 @@ export default function UsersManagement() {
           <p className="text-muted-foreground">Manage user accounts and assign roles.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <ShieldCheck className="h-4 w-4 mr-2" />
-            Roles
-          </Button>
-          <AddUserDialog onSave={handleAddUser} />
+          {isAdmin && (
+            <Button variant="outline" size="sm">
+              <ShieldCheck className="h-4 w-4 mr-2" />
+              Roles
+            </Button>
+          )}
+          {isAdmin && <AddUserDialog onSave={handleAddUser} />}
         </div>
       </div>
 
@@ -312,50 +402,58 @@ export default function UsersManagement() {
           />
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
-          <Button variant="outline" size="sm" onClick={handleExportUsers}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="h-4 w-4 mr-2" />
-            Import
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept=".csv"
-              className="hidden"
-              onChange={handleImportUsers}
-            />
-          </Button>
-          <Select
-            value={roleFilter}
-            onValueChange={setRoleFilter}
-          >
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All Roles</SelectItem>
-              <SelectItem value="Admin">Admin</SelectItem>
-              <SelectItem value="Auditor">Auditor</SelectItem>
-              <SelectItem value="Technician">Technician</SelectItem>
-              <SelectItem value="Inventory Manager">Inventory Manager</SelectItem>
-              <SelectItem value="User">User</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={statusFilter}
-            onValueChange={setStatusFilter}
-          >
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All Status</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
+          {isAdmin && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleExportUsers}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleImportUsers}
+                />
+              </Button>
+            </>
+          )}
+          {isAdmin && (
+            <>
+              <Select
+                value={roleFilter}
+                onValueChange={setRoleFilter}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Roles</SelectItem>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="Auditor">Auditor</SelectItem>
+                  <SelectItem value="Technician">Technician</SelectItem>
+                  <SelectItem value="Inventory Manager">Inventory Manager</SelectItem>
+                  <SelectItem value="User">User</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Status</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          )}
         </div>
       </div>
 
@@ -376,7 +474,7 @@ export default function UsersManagement() {
             {filteredUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
-                  No users found. Add a new user or adjust your filters.
+                  No users found. {isAdmin && "Add a new user or adjust your filters."}
                 </TableCell>
               </TableRow>
             ) : (
@@ -416,15 +514,16 @@ export default function UsersManagement() {
                     >
                       Edit
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setDeletingUser(user)}
-                      className="text-destructive hover:text-destructive"
-                      disabled={authUser && user.email === authUser.email} // Prevent deleting yourself
-                    >
-                      Delete
-                    </Button>
+                    {isAdmin && user.email !== authUser?.email && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setDeletingUser(user)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        Delete
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -438,13 +537,14 @@ export default function UsersManagement() {
           user={editingUser}
           onSave={handleUpdateUser}
           onCancel={() => setEditingUser(null)}
+          isAdmin={isAdmin}
         />
       )}
 
       {deletingUser && (
         <DeleteUserDialog
           user={deletingUser}
-          onDelete={handleDeleteUser}
+          onDelete={() => handleDeleteUser(deletingUser.id)}
           onCancel={() => setDeletingUser(null)}
         />
       )}

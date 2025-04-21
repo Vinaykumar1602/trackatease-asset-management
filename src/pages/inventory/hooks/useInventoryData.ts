@@ -1,284 +1,272 @@
 
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { InventoryItem } from "../components/AddInventoryItemDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 
 export function useInventoryData() {
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [inventoryItems, setInventoryItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Load inventory items from Supabase
   useEffect(() => {
-    const fetchInventoryItems = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('inventory')
-          .select('*');
-          
-        if (error) throw error;
-        
-        // Map Supabase data to our InventoryItem format
-        const mappedItems = data.map(item => ({
-          id: item.id ? parseInt(item.id.toString().substring(0, 8), 16) : Math.floor(Math.random() * 1000000),
+    fetchInventoryItems();
+  }, [user?.id]);
+
+  const fetchInventoryItems = async () => {
+    try {
+      setLoading(true);
+      
+      if (!user?.id) return;
+      
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('*');
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        const formattedItems = data.map(item => ({
+          id: item.id,
           name: item.name,
           sku: item.sku || '',
-          category: item.category,
-          quantity: item.quantity,
-          minLevel: item.min_quantity,
+          category: item.category || '',
+          quantity: item.quantity || 0,
+          minQuantity: item.min_quantity || 0,
+          status: determineStatus(item.quantity, item.min_quantity),
           location: item.location || '',
-          status: getItemStatus(item.quantity, item.min_quantity),
-          supabaseId: item.id
+          supplier: item.supplier || '',
+          unitPrice: item.unit_price || 0,
+          lastRestock: item.last_restock ? new Date(item.last_restock).toISOString().split('T')[0] : '',
+          updatedAt: item.updated_at ? new Date(item.updated_at).toISOString().split('T')[0] : ''
         }));
-        
-        setInventoryItems(mappedItems);
-      } catch (error) {
-        console.error('Error fetching inventory:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load inventory items.",
-          variant: "destructive",
-        });
-        // Fall back to local demo data if DB fetch fails
-        setInventoryItems([
-          { id: 1, name: "Printer Ink Cartridge", sku: "INK-2023-001", category: "Office Supplies", quantity: 45, minLevel: 10, location: "Main Office", status: "In Stock" },
-          { id: 2, name: "Toner Cartridge", sku: "TNR-2023-002", category: "Office Supplies", quantity: 8, minLevel: 10, location: "Main Office", status: "Low Stock" },
-          { id: 3, name: "A4 Paper (Box)", sku: "PPR-2023-003", category: "Office Supplies", quantity: 25, minLevel: 5, location: "Storage Room", status: "In Stock" },
-          { id: 4, name: "Network Cable CAT6", sku: "NET-2023-004", category: "IT Supplies", quantity: 120, minLevel: 20, location: "IT Storage", status: "In Stock" },
-          { id: 5, name: "Laptop Cooling Pad", sku: "LCP-2023-005", category: "IT Equipment", quantity: 3, minLevel: 5, location: "Main Office", status: "Low Stock" }
-        ]);
-      } finally {
-        setLoading(false);
+
+        setInventoryItems(formattedItems);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching inventory items:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load inventory items",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchInventoryItems();
-  }, [toast]);
-
-  // Helper to determine status based on quantity and minimum level
-  const getItemStatus = (quantity: number, minLevel: number): "In Stock" | "Low Stock" | "Out of Stock" => {
-    if (quantity === 0) return "Out of Stock";
-    if (quantity <= minLevel) return "Low Stock";
+  const determineStatus = (quantity, minQuantity) => {
+    if (quantity <= 0) return "Out of Stock";
+    if (quantity <= minQuantity) return "Low Stock";
     return "In Stock";
   };
 
-  const handleStockUpdate = async (id: number, quantity: number, operation: "in" | "out", notes: string) => {
-    // Find the item to update
-    const itemToUpdate = inventoryItems.find(item => item.id === id);
-    if (!itemToUpdate) return;
-    
-    const newQuantity = operation === "in" 
-      ? itemToUpdate.quantity + quantity 
-      : Math.max(0, itemToUpdate.quantity - quantity);
-    
-    const newStatus = getItemStatus(newQuantity, itemToUpdate.minLevel);
-    
-    // Optimistically update the UI
-    setInventoryItems(prev => prev.map(item => {
-      if (item.id === id) {
-        return {
-          ...item,
+  const handleStockUpdate = async (id, newQuantity) => {
+    try {
+      const { error } = await supabase
+        .from('inventory')
+        .update({ 
           quantity: newQuantity,
-          status: newStatus
-        };
-      }
-      return item;
-    }));
-    
-    // Save to Supabase if we have a supabaseId
-    if (itemToUpdate.supabaseId && user?.id) {
-      try {
-        const { error } = await supabase
-          .from('inventory')
-          .update({ 
-            quantity: newQuantity,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', itemToUpdate.supabaseId);
-          
-        if (error) throw error;
-        
-      } catch (error) {
-        console.error('Error updating inventory:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update inventory in database.",
-          variant: "destructive",
-        });
-        
-        // Revert the optimistic update on error
-        setInventoryItems(prev => prev.map(item => {
-          if (item.id === id) {
-            return itemToUpdate;
-          }
-          return item;
-        }));
-        
-        return;
-      }
-    }
-    
-    toast({
-      title: operation === "in" ? "Stock Added" : "Stock Removed",
-      description: `${quantity} units of ${itemToUpdate.name} have been ${operation === "in" ? "added to" : "removed from"} inventory.`
-    });
-  };
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
 
-  const handleAddItem = async (itemData: Omit<InventoryItem, "id" | "status">) => {
-    if (!user?.id) {
+      if (error) {
+        throw error;
+      }
+
+      // Update local state
+      setInventoryItems(prev => prev.map(item => {
+        if (item.id === id) {
+          const updatedItem = {
+            ...item,
+            quantity: newQuantity,
+            status: determineStatus(newQuantity, item.minQuantity),
+            updatedAt: new Date().toISOString().split('T')[0]
+          };
+          return updatedItem;
+        }
+        return item;
+      }));
+
       toast({
-        title: "Authentication Required",
-        description: "Please log in to add inventory items.",
+        title: "Success",
+        description: "Stock quantity updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating stock:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update stock quantity",
         variant: "destructive",
       });
-      return;
     }
-    
-    const status = getItemStatus(itemData.quantity, itemData.minLevel);
-    
+  };
+
+  const handleAddItem = async (formData) => {
     try {
-      // Add to Supabase first
+      if (!user?.id) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to add items",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from('inventory')
         .insert({
-          name: itemData.name,
-          sku: itemData.sku,
-          category: itemData.category,
-          quantity: itemData.quantity,
-          min_quantity: itemData.minLevel,
-          location: itemData.location,
-          created_by: user.id,
+          name: formData.name,
+          sku: formData.sku,
+          category: formData.category,
+          quantity: formData.quantity,
+          min_quantity: formData.minQuantity,
+          location: formData.location,
+          supplier: formData.supplier,
+          unit_price: formData.unitPrice,
+          created_by: user.id
         })
         .select();
-        
-      if (error) throw error;
-      
-      const newId = data[0].id ? parseInt(data[0].id.toString().substring(0, 8), 16) : Math.floor(Math.random() * 1000000);
-      
-      const newItem: InventoryItem = {
-        ...itemData,
-        id: newId,
-        status,
-        supabaseId: data[0].id
-      };
-      
-      // Update local state after successful DB insert
-      setInventoryItems(prev => [...prev, newItem]);
-      
-      toast({
-        title: "Item Added",
-        description: `${newItem.name} has been added to inventory.`
-      });
-      
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data[0]) {
+        const newItem = {
+          id: data[0].id,
+          name: data[0].name,
+          sku: data[0].sku || '',
+          category: data[0].category || '',
+          quantity: data[0].quantity || 0,
+          minQuantity: data[0].min_quantity || 0,
+          status: determineStatus(data[0].quantity, data[0].min_quantity),
+          location: data[0].location || '',
+          supplier: data[0].supplier || '',
+          unitPrice: data[0].unit_price || 0,
+          lastRestock: data[0].last_restock ? new Date(data[0].last_restock).toISOString().split('T')[0] : '',
+          updatedAt: data[0].updated_at ? new Date(data[0].updated_at).toISOString().split('T')[0] : ''
+        };
+
+        setInventoryItems(prev => [...prev, newItem]);
+
+        toast({
+          title: "Success",
+          description: `${formData.name} has been added to inventory.`,
+        });
+      }
     } catch (error) {
       console.error('Error adding inventory item:', error);
       toast({
         title: "Error",
-        description: "Failed to add inventory item to database.",
+        description: "Failed to add inventory item",
         variant: "destructive",
       });
     }
   };
 
-  const handleImportItems = async (items: Omit<InventoryItem, "id" | "status">[]) => {
-    if (!user?.id || items.length === 0) return;
-    
+  const handleImportItems = async (items) => {
     try {
-      // Prepare items for database
-      const dbItems = items.map(item => ({
+      if (!user?.id || !items.length) return;
+
+      const formattedItems = items.map(item => ({
         name: item.name,
-        sku: item.sku,
-        category: item.category,
-        quantity: item.quantity,
-        min_quantity: item.minLevel,
-        location: item.location,
-        created_by: user.id,
+        sku: item.sku || null,
+        category: item.category || null,
+        quantity: parseInt(item.quantity) || 0,
+        min_quantity: parseInt(item.minQuantity) || 0,
+        location: item.location || null,
+        supplier: item.supplier || null,
+        unit_price: parseFloat(item.unitPrice) || 0,
+        created_by: user.id
       }));
-      
-      // Insert to Supabase
+
       const { data, error } = await supabase
         .from('inventory')
-        .insert(dbItems)
+        .insert(formattedItems)
         .select();
-        
-      if (error) throw error;
-      
-      // Map returned data to inventory items
-      const newItems: InventoryItem[] = data.map(item => ({
-        id: parseInt(item.id.toString().substring(0, 8), 16),
-        name: item.name,
-        sku: item.sku || '',
-        category: item.category,
-        quantity: item.quantity,
-        minLevel: item.min_quantity,
-        location: item.location || '',
-        status: getItemStatus(item.quantity, item.min_quantity),
-        supabaseId: item.id
-      }));
-      
-      // Update local state
-      setInventoryItems(prev => [...prev, ...newItems]);
-      
-      toast({
-        title: "Import Successful",
-        description: `${newItems.length} items have been imported to inventory.`
-      });
-      
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        const newItems = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          sku: item.sku || '',
+          category: item.category || '',
+          quantity: item.quantity || 0,
+          minQuantity: item.min_quantity || 0,
+          status: determineStatus(item.quantity, item.min_quantity),
+          location: item.location || '',
+          supplier: item.supplier || '',
+          unitPrice: item.unit_price || 0,
+          lastRestock: item.last_restock ? new Date(item.last_restock).toISOString().split('T')[0] : '',
+          updatedAt: item.updated_at ? new Date(item.updated_at).toISOString().split('T')[0] : ''
+        }));
+
+        setInventoryItems(prev => [...prev, ...newItems]);
+
+        toast({
+          title: "Import Successful",
+          description: `${newItems.length} items have been imported.`,
+        });
+      }
     } catch (error) {
       console.error('Error importing inventory items:', error);
       toast({
         title: "Import Failed",
-        description: "There was an error importing the items.",
-        variant: "destructive"
+        description: "There was an error importing the inventory items.",
+        variant: "destructive",
       });
     }
   };
 
-  const handleEditItem = async (updatedItem: InventoryItem) => {
-    if (!updatedItem.supabaseId) {
-      // We need a supabaseId to update the DB
-      setInventoryItems(prev => 
-        prev.map(item => item.id === updatedItem.id ? updatedItem : item)
-      );
-    } else {
-      try {
-        const { error } = await supabase
-          .from('inventory')
-          .update({
-            name: updatedItem.name,
-            sku: updatedItem.sku,
-            category: updatedItem.category,
-            quantity: updatedItem.quantity,
-            min_quantity: updatedItem.minLevel,
-            location: updatedItem.location,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', updatedItem.supabaseId);
-          
-        if (error) throw error;
-        
-        // Update local state after successful DB update
-        setInventoryItems(prev => 
-          prev.map(item => item.id === updatedItem.id ? updatedItem : item)
-        );
-        
-        toast({
-          title: "Item Updated",
-          description: `${updatedItem.name} has been updated successfully.`
-        });
-        
-      } catch (error) {
-        console.error('Error updating inventory item:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update inventory item in database.",
-          variant: "destructive",
-        });
+  const handleEditItem = async (updatedItem) => {
+    try {
+      const { error } = await supabase
+        .from('inventory')
+        .update({
+          name: updatedItem.name,
+          sku: updatedItem.sku,
+          category: updatedItem.category,
+          quantity: updatedItem.quantity,
+          min_quantity: updatedItem.minQuantity,
+          location: updatedItem.location,
+          supplier: updatedItem.supplier,
+          unit_price: updatedItem.unitPrice,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', updatedItem.id);
+
+      if (error) {
+        throw error;
       }
+
+      setInventoryItems(prev => prev.map(item => 
+        item.id === updatedItem.id ? {
+          ...updatedItem,
+          status: determineStatus(updatedItem.quantity, updatedItem.minQuantity),
+          updatedAt: new Date().toISOString().split('T')[0]
+        } : item
+      ));
+
+      toast({
+        title: "Item Updated",
+        description: "The inventory item has been updated.",
+      });
+    } catch (error) {
+      console.error('Error updating inventory item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update inventory item",
+        variant: "destructive",
+      });
     }
   };
 

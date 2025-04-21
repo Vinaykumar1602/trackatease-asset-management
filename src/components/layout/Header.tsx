@@ -1,8 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, Search, Settings, User, LogOut } from "lucide-react";
+import { Menu, Search, Settings, User, LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/context/AuthContext';
@@ -21,7 +22,7 @@ import { NotificationPopover } from '../notifications/NotificationPopover';
 export default function Header() {
   const isMobile = useIsMobile();
   const [searchValue, setSearchValue] = useState("");
-  const { user, profile, logout } = useAuth();
+  const { user, profile, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const getInitials = (name: string) => {
@@ -36,6 +37,15 @@ export default function Header() {
   const handleNavigate = (path: string) => {
     navigate(path);
   };
+
+  // Ensure user data is displayed for debugging
+  useEffect(() => {
+    if (user) {
+      console.log("Current user:", user.email);
+      console.log("User ID:", user.id);
+      console.log("Is admin:", isAdmin);
+    }
+  }, [user, isAdmin]);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
@@ -70,14 +80,24 @@ export default function Header() {
               <Avatar className="h-8 w-8">
                 <AvatarImage src={profile?.avatar_url} />
                 <AvatarFallback className="bg-primary text-white">
-                  {profile ? getInitials(profile.name) : 'TA'}
+                  {profile ? getInitials(profile.name) : user?.email?.substring(0, 2).toUpperCase() || 'TA'}
                 </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
-              {profile ? profile.name : user?.email || 'Account'}
+            <DropdownMenuLabel className="flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <span>{profile ? profile.name : user?.email || 'Account'}</span>
+                {isAdmin && (
+                  <Badge variant="default" className="ml-1">
+                    <ShieldCheck className="h-3 w-3 mr-1" /> Admin
+                  </Badge>
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground font-normal">
+                {user?.email}
+              </span>
               {profile && profile.role && (
                 <p className="text-xs text-muted-foreground mt-1 capitalize">{profile.role}</p>
               )}

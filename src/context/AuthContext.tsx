@@ -23,6 +23,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   refreshProfile: () => Promise<void>;
+  isAdmin: boolean;
+  checkAdminRole: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,6 +34,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const { toast } = useToast();
 
   const refreshProfile = async () => {
@@ -51,9 +54,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (data) {
         setProfile(data as UserProfile);
+        // Check admin role after profile is loaded
+        checkAdminRole();
       }
     } catch (error) {
       console.error('Error refreshing profile:', error);
+    }
+  };
+
+  const checkAdminRole = async (): Promise<boolean> => {
+    if (!user) return false;
+    
+    try {
+      // Use RPC to call the has_role function we created in SQL
+      const { data, error } = await supabase
+        .rpc('has_role', { 
+          user_id: user.id, 
+          role: 'admin' 
+        });
+
+      if (error) {
+        console.error('Error checking admin role:', error);
+        return false;
+      }
+
+      // Update admin status
+      setIsAdmin(!!data);
+      console.log('User admin status:', !!data);
+      return !!data;
+    } catch (error) {
+      console.error('Error checking admin role:', error);
+      return false;
     }
   };
 
@@ -62,6 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
+        console.log('Auth state changed:', event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
@@ -72,12 +104,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }, 0);
         } else {
           setProfile(null);
+          setIsAdmin(false);
         }
       }
     );
     
     // Get initial session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log('Initial session:', currentSession ? 'exists' : 'none');
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
@@ -107,6 +141,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           variant: "destructive"
         });
         return { success: false, message: error.message };
+      }
+
+      console.log('Login successful for:', email);
+      
+      // After successful login, check if user is admin
+      if (data.user) {
+        setTimeout(async () => {
+          const isUserAdmin = await checkAdminRole();
+          console.log('User is admin:', isUserAdmin);
+        }, 500);
       }
 
       toast({
@@ -187,7 +231,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signUp,
         logout,
         isAuthenticated: !!session,
-        refreshProfile
+        refreshProfile,
+        isAdmin,
+        checkAdminRole
       }}
     >
       {children}

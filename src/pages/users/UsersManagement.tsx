@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Users, 
@@ -32,6 +33,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DeleteUserDialog } from "./components/DeleteUserDialog";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function UsersManagement() {
   const [users, setUsers] = useState<User[]>([
@@ -92,9 +95,53 @@ export default function UsersManagement() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  const { user: authUser, isAdmin } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load the authenticated user info
+  useEffect(() => {
+    const loadAdminUser = async () => {
+      if (!authUser) return;
+
+      try {
+        // Check if user exists in the list
+        const existingUser = users.find(u => u.email === authUser.email);
+        
+        if (!existingUser) {
+          // Add the current authenticated user to the list if they're not there
+          const adminUser: User = {
+            id: parseInt(authUser.id.substring(0, 8), 16) || 999, // Convert part of UUID to number for ID
+            name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || "Admin User",
+            email: authUser.email || "",
+            role: "Admin",
+            department: "IT",
+            status: "Active",
+            lastLogin: "Now",
+            permissions: ["View Assets", "Edit Assets", "Delete Assets", "View Sales", "Manage Sales", "View Service", "Manage Service", "Generate Reports", "Manage Users"]
+          };
+          
+          setUsers(prev => [adminUser, ...prev]);
+          
+          toast({
+            title: "Admin User Added",
+            description: `${authUser.email} has been added as an admin user.`
+          });
+        }
+        
+        console.log("Admin user loaded:", authUser.email);
+        
+      } catch (error) {
+        console.error("Error loading admin user:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadAdminUser();
+  }, [authUser, toast]);
 
   const handleAddUser = (userData: Omit<User, "id" | "lastLogin">) => {
     const id = users.length > 0 ? Math.max(...users.map(user => user.id)) + 1 : 1;
@@ -226,6 +273,17 @@ export default function UsersManagement() {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p>Loading users...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -323,16 +381,20 @@ export default function UsersManagement() {
               </TableRow>
             ) : (
               filteredUsers.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user.id} className={authUser && user.email === authUser.email ? "bg-muted/50" : ""}>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-muted-foreground" />
-                      <span>{user.name}</span>
+                      <span className="font-medium">{user.name}</span>
+                      {authUser && user.email === authUser.email && (
+                        <Badge variant="outline" className="ml-2">You</Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     <Badge variant={user.role === "Admin" ? "default" : "outline"}>
+                      {user.role === "Admin" && <ShieldCheck className="h-3 w-3 mr-1" />}
                       {user.role}
                     </Badge>
                   </TableCell>
@@ -359,6 +421,7 @@ export default function UsersManagement() {
                       size="sm"
                       onClick={() => setDeletingUser(user)}
                       className="text-destructive hover:text-destructive"
+                      disabled={authUser && user.email === authUser.email} // Prevent deleting yourself
                     >
                       Delete
                     </Button>

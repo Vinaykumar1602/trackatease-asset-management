@@ -24,7 +24,6 @@ export default function Settings() {
       // Try to load from Supabase if user is authenticated
       if (user?.id) {
         try {
-          // Fix: Need to use the correct type checking for the user_settings table
           const { data, error } = await supabase
             .from('user_settings')
             .select('settings')
@@ -35,7 +34,8 @@ export default function Settings() {
           
           if (data && data.settings) {
             // The data.settings is a JSONB field from Supabase
-            setSettings({ ...defaultSettings, ...data.settings });
+            const userSettings = data.settings as unknown;
+            setSettings({ ...defaultSettings, ...userSettings as object });
             // Also update localStorage for offline access
             localStorage.setItem('app_settings', JSON.stringify(data.settings));
             return;
@@ -71,12 +71,11 @@ export default function Settings() {
     // Save to database if authenticated
     if (user?.id) {
       try {
-        // Fix: Need to use the correct type for the user_settings table
         const { error } = await supabase
           .from('user_settings')
           .upsert({ 
             user_id: user.id, 
-            settings: settings,
+            settings: settings as unknown as Record<string, unknown>,
             updated_at: new Date().toISOString()
           }, { 
             onConflict: 'user_id' 

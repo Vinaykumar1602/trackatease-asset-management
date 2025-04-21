@@ -5,7 +5,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
 import { Toaster } from '@/components/ui/toaster'
-import { initializeTheme } from '@/pages/dashboard/utils/settingsUtils'
+import { initializeTheme } from '@/pages/settings/utils/settingsUtils'
 
 // Initialize theme from stored settings
 initializeTheme();

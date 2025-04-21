@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,8 +33,8 @@ export default function Settings() {
           
           if (data && data.settings) {
             // The data.settings is a JSONB field from Supabase
-            const userSettings = data.settings as unknown;
-            setSettings({ ...defaultSettings, ...userSettings as object });
+            const userSettings = data.settings as any;
+            setSettings({ ...defaultSettings, ...userSettings });
             // Also update localStorage for offline access
             localStorage.setItem('app_settings', JSON.stringify(data.settings));
             return;
@@ -75,7 +74,7 @@ export default function Settings() {
           .from('user_settings')
           .upsert({ 
             user_id: user.id, 
-            settings: settings as unknown as Record<string, unknown>,
+            settings: settings as any,
             updated_at: new Date().toISOString()
           }, { 
             onConflict: 'user_id' 

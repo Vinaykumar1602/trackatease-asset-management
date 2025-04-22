@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Users, 
@@ -47,7 +46,7 @@ export default function UsersManagement() {
 
   const { user: authUser, isAdmin } = useAuth();
   const { toast } = useToast();
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (authUser) {
@@ -60,7 +59,6 @@ export default function UsersManagement() {
       setLoading(true);
       
       if (!isAdmin) {
-        // If not admin, only load the current user
         if (authUser) {
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
@@ -86,7 +84,6 @@ export default function UsersManagement() {
           }
         }
       } else {
-        // Admin can see all users
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('*');
@@ -100,9 +97,9 @@ export default function UsersManagement() {
             email: profile.email || "",
             role: profile.role || "User",
             department: profile.department || "General",
-            status: "Active", // Could be fetched from another table if needed
+            status: "Active",
             lastLogin: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : "Never",
-            permissions: [] // Could be fetched from a permissions table if implemented
+            permissions: []
           }));
           
           setUsers(formattedUsers);
@@ -131,16 +128,9 @@ export default function UsersManagement() {
         return;
       }
       
-      // In a real app, you would typically invite the user through auth system
-      // For now, we'll just add their profile
       const { data, error } = await supabase
         .from('profiles')
-        .insert({
-          email: userData.email,
-          name: userData.name,
-          role: userData.role,
-          department: userData.department
-        })
+        .insert([{ email: userData.email, name: userData.name, role: userData.role, department: userData.department, id: crypto.randomUUID() }])
         .select();
       
       if (error) throw error;
@@ -262,14 +252,17 @@ export default function UsersManagement() {
         const validUsers = importedUsers.filter(user => user.name && user.email);
         
         if (validUsers.length > 0) {
+          const userProfiles = validUsers.map(user => ({
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            department: user.department,
+            id: crypto.randomUUID()
+          }));
+          
           const { data, error } = await supabase
             .from('profiles')
-            .insert(validUsers.map(user => ({
-              email: user.email,
-              name: user.name,
-              role: user.role,
-              department: user.department
-            })))
+            .insert(userProfiles)
             .select();
           
           if (error) throw error;
@@ -321,8 +314,6 @@ export default function UsersManagement() {
         return;
       }
       
-      // In a real implementation, this might involve more steps
-      // such as deleting the actual auth user, but for now we just remove the profile
       const { error } = await supabase
         .from('profiles')
         .delete()
@@ -514,7 +505,7 @@ export default function UsersManagement() {
                     >
                       Edit
                     </Button>
-                    {isAdmin && user.email !== authUser?.email && (
+                    {isAdmin && authUser && user.email !== authUser.email && (
                       <Button 
                         variant="ghost" 
                         size="sm"
@@ -544,7 +535,7 @@ export default function UsersManagement() {
       {deletingUser && (
         <DeleteUserDialog
           user={deletingUser}
-          onDelete={() => handleDeleteUser(deletingUser.id)}
+          onDelete={handleDeleteUser}
           onCancel={() => setDeletingUser(null)}
         />
       )}

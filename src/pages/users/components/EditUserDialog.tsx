@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,9 +26,10 @@ interface EditUserDialogProps {
   user: User;
   onSave: (user: User) => void;
   onCancel: () => void;
+  isAdmin?: boolean; // Added isAdmin as optional prop
 }
 
-export function EditUserDialog({ user, onSave, onCancel }: EditUserDialogProps) {
+export function EditUserDialog({ user, onSave, onCancel, isAdmin = false }: EditUserDialogProps) {
   const [formData, setFormData] = useState<User>({ ...user });
   const [resetPassword, setResetPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");

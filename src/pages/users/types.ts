@@ -1,6 +1,6 @@
 
 export interface User {
-  id: number;
+  id: string; // Changed from number to string to match Supabase's UUID format
   name: string;
   email: string;
   role: string;
@@ -16,7 +16,7 @@ export interface User {
 }
 
 export interface Role {
-  id: number;
+  id: string; // Changed from number to string
   name: string;
   permissions: Permission[];
   userCount: number;
@@ -26,7 +26,7 @@ export interface Role {
 }
 
 export interface Permission {
-  id: number;
+  id: string; // Changed from number to string
   name: string;
   module: string;
   description: string;

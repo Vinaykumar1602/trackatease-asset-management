@@ -55,9 +55,10 @@ export const completeService = async (
   }
 };
 
+// Use explicit parameter typing to avoid recursive type references
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: ServiceHistoryUpdater
+  setServiceHistory: (records: ServiceRecord[]) => void
 ) => {
   try {
     let saleId = null;

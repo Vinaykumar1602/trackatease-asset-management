@@ -83,14 +83,15 @@ export default function UsersManagement() {
       
       if (profilesData) {
         const formattedUsers = profilesData.map(profile => {
-          const userRole = profile.user_roles && profile.user_roles[0] ? 
-            profile.user_roles[0].role : 'user';
+          const userRole = profile.user_roles && profile.user_roles.length > 0 
+            ? String(profile.user_roles[0]?.role) 
+            : 'user';
           
           return {
             id: profile.id,
             name: profile.name || profile.email?.split('@')[0] || "User",
             email: profile.email || "",
-            role: userRole as string,
+            role: userRole,
             department: profile.department || "General",
             status: "Active",
             lastLogin: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : "Never",
@@ -110,6 +111,16 @@ export default function UsersManagement() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const mapToValidRole = (role: string): AppRole => {
+    const validRoles: AppRole[] = ["admin", "technician", "auditor", "inventory_manager", "user"];
+    
+    if (validRoles.includes(role.toLowerCase() as AppRole)) {
+      return role.toLowerCase() as AppRole;
+    }
+    
+    return "user";
   };
 
   const handleAddUser = async (userData: Omit<User, "id" | "lastLogin">) => {
@@ -159,16 +170,6 @@ export default function UsersManagement() {
         variant: "destructive"
       });
     }
-  };
-
-  const mapToValidRole = (role: string): AppRole => {
-    const validRoles: AppRole[] = ["admin", "technician", "auditor", "inventory_manager", "user"];
-    
-    if (validRoles.includes(role.toLowerCase() as AppRole)) {
-      return role.toLowerCase() as AppRole;
-    }
-    
-    return "user";
   };
 
   const handleUpdateUser = async (updatedUser: User) => {

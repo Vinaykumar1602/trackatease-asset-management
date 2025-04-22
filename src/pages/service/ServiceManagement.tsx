@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -89,16 +90,22 @@ export default function ServiceManagement() {
       if (error) throw error;
       
       if (data) {
-        const formattedItems: ServiceItem[] = data.map(item => ({
-          id: item.id,
-          client: item.sales?.customer_name || "Unknown Client",
-          product: item.sales?.product_name || item.title,
-          serialNo: item.sales?.serial_no || "N/A",
-          scheduledDate: item.scheduled_date ? new Date(item.scheduled_date).toISOString().split('T')[0] : "Not scheduled",
-          technician: item.assigned_to ? item.assigned_to : "Unassigned",
-          status: item.status || "Pending",
-          slaStatus: determineSlaStatus(item.scheduled_date, item.status)
-        }));
+        const formattedItems: ServiceItem[] = data.map(item => {
+          // Safely access sales data, with fallbacks
+          const salesData = item.sales || {};
+          
+          return {
+            id: item.id,
+            // Use optional chaining and provide fallbacks
+            client: salesData.customer_name || "Unknown Client",
+            product: salesData.product_name || item.title,
+            serialNo: salesData.serial || "N/A",
+            scheduledDate: item.scheduled_date ? new Date(item.scheduled_date).toISOString().split('T')[0] : "Not scheduled",
+            technician: item.assigned_to ? item.assigned_to : "Unassigned",
+            status: item.status || "Pending",
+            slaStatus: determineSlaStatus(item.scheduled_date, item.status)
+          };
+        });
         
         setServiceItems(formattedItems);
       }
@@ -167,7 +174,7 @@ export default function ServiceManagement() {
         const { data: assetData } = await supabase
           .from('sales')
           .select('id')
-          .eq('serial_no', newService.serialNo)
+          .eq('serial', newService.serialNo)
           .single();
           
         if (assetData) {
@@ -226,7 +233,7 @@ export default function ServiceManagement() {
         const { data: assetData } = await supabase
           .from('sales')
           .select('id')
-          .eq('serial_no', updatedService.serialNo)
+          .eq('serial', updatedService.serialNo)
           .single();
           
         if (assetData) {
@@ -285,7 +292,7 @@ export default function ServiceManagement() {
         const { data: saleData } = await supabase
           .from('sales')
           .select('id')
-          .eq('serial_no', service.serialNo)
+          .eq('serial', service.serialNo)
           .maybeSingle();
           
         if (saleData) {
@@ -439,7 +446,7 @@ export default function ServiceManagement() {
               const { data: assetData } = await supabase
                 .from('sales')
                 .select('id')
-                .eq('serial_no', service.serialNo)
+                .eq('serial', service.serialNo)
                 .maybeSingle();
                 
               if (assetData) {
@@ -494,8 +501,8 @@ export default function ServiceManagement() {
 
   // Convert ServiceItems to format needed by ServiceCalendarView
   const servicesForCalendar = serviceItems.map(item => ({
-    id: String(item.id),
-    assetId: String(item.id),
+    id: item.id,
+    assetId: item.id,
     scheduledDate: item.scheduledDate,
     description: item.product,
     status: item.status.toLowerCase() as 'scheduled' | 'in progress' | 'completed' | 'cancelled'

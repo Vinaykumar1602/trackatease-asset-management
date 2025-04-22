@@ -13,7 +13,7 @@ import { User } from "../types";
 
 interface DeleteUserDialogProps {
   user: User;
-  onDelete: (id: string) => void; // Changed from number to string
+  onDelete: (id: string) => void; 
   onCancel: () => void;
 }
 

@@ -63,6 +63,14 @@ interface SalesData {
   updated_at?: string;
 }
 
+interface CalendarService {
+  id: string;
+  assetId: string;
+  scheduledDate: string;
+  description: string;
+  status: 'scheduled' | 'in progress' | 'completed' | 'cancelled' | 'pending' | 'overdue';
+}
+
 export default function ServiceManagement() {
   const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
   const [serviceHistory, setServiceHistory] = useState<ServiceRecord[]>([]);
@@ -489,14 +497,6 @@ export default function ServiceManagement() {
       setEditingService(service);
     }
   };
-
-  interface CalendarService {
-    id: string;
-    assetId: string;
-    scheduledDate: string;
-    description: string;
-    status: 'scheduled' | 'in progress' | 'completed' | 'cancelled' | 'pending' | 'overdue';
-  }
 
   const servicesForCalendar: CalendarService[] = serviceItems.map(item => {
     let statusValue: CalendarService['status'];

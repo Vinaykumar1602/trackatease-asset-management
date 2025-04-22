@@ -64,3 +64,19 @@ export interface ClientBranch {
 export interface ImportFormat {
   [key: string]: string;
 }
+
+// Service-related interfaces mapped to Supabase schema
+export interface ServiceRequestData {
+  id: string;
+  asset_id: string | null;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  scheduled_date: string | null;
+  completion_date: string | null;
+  assigned_to: string | null;
+  requested_by: string;
+  created_at: string | null;
+  updated_at: string | null;
+}

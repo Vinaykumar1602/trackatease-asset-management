@@ -24,7 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import { ServiceRecord } from "../sales/types";
+import { ServiceRecord, ServiceRequestData } from "../sales/types";
 import { ScheduleServiceDialog } from "./components/ScheduleServiceDialog";
 import { ServiceEditDialog } from "./components/ServiceEditDialog";
 import { ServiceCalendarView } from "./components/ServiceCalendarView";
@@ -83,11 +83,7 @@ export default function ServiceManagement() {
         .from('service_requests')
         .select(`
           *,
-          sales:asset_id (
-            product_name,
-            customer_name,
-            serial_no
-          )
+          sales:asset_id (*)
         `);
         
       if (error) throw error;
@@ -99,7 +95,7 @@ export default function ServiceManagement() {
           product: item.sales?.product_name || item.title,
           serialNo: item.sales?.serial_no || "N/A",
           scheduledDate: item.scheduled_date ? new Date(item.scheduled_date).toISOString().split('T')[0] : "Not scheduled",
-          technician: item.assigned_to ? "Assigned" : "Unassigned",
+          technician: item.assigned_to ? item.assigned_to : "Unassigned",
           status: item.status || "Pending",
           slaStatus: determineSlaStatus(item.scheduled_date, item.status)
         }));
@@ -120,21 +116,23 @@ export default function ServiceManagement() {
 
   const fetchServiceHistory = async () => {
     try {
+      // Since there's no service_records table, we'll use completed service_requests instead
       const { data, error } = await supabase
-        .from('service_records')
-        .select('*');
+        .from('service_requests')
+        .select('*')
+        .eq('status', 'Completed');
         
       if (error) throw error;
       
       if (data) {
         const formattedHistory: ServiceRecord[] = data.map(record => ({
           id: record.id,
-          saleId: record.sale_id,
-          date: new Date(record.service_date).toISOString().split('T')[0],
-          technician: record.technician || "Unknown",
-          description: record.description || "",
-          partsUsed: record.parts_used || "None",
-          nextServiceDue: record.next_service_due ? new Date(record.next_service_due).toISOString().split('T')[0] : ""
+          saleId: record.asset_id || "",
+          date: record.scheduled_date ? new Date(record.scheduled_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          technician: record.assigned_to || "Unknown",
+          description: record.title || "",
+          partsUsed: record.description || "None",
+          nextServiceDue: record.completion_date ? new Date(new Date(record.completion_date).setMonth(new Date(record.completion_date).getMonth() + 3)).toISOString().split('T')[0] : ""
         }));
         
         setServiceHistory(formattedHistory);
@@ -185,7 +183,9 @@ export default function ServiceManagement() {
           assigned_to: newService.technician !== "Unassigned" ? newService.technician : null,
           status: newService.status,
           asset_id: assetId,
-          requested_by: user.id
+          requested_by: user.id,
+          priority: "medium",
+          description: `Service for ${newService.product}`
         })
         .select();
         
@@ -286,7 +286,7 @@ export default function ServiceManagement() {
           .from('sales')
           .select('id')
           .eq('serial_no', service.serialNo)
-          .single();
+          .maybeSingle();
           
         if (saleData) {
           saleId = saleData.id;
@@ -306,46 +306,28 @@ export default function ServiceManagement() {
         }
       }
       
-      if (!saleId) return; // Can't create a service record without a sale
-      
-      const { data, error } = await supabase
-        .from('service_records')
-        .insert({
-          sale_id: saleId,
-          service_date: new Date().toISOString(),
-          technician: service.technician,
-          description: `Service completed for ${service.product}`,
-          parts_used: "None",
-          next_service_due: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString(),
-          created_by: user.id
-        })
-        .select();
-        
-      if (error) throw error;
-      
-      if (data && data[0]) {
-        const newRecord: ServiceRecord = {
-          id: data[0].id,
-          saleId: data[0].sale_id,
-          date: new Date(data[0].service_date).toISOString().split('T')[0],
-          technician: data[0].technician,
-          description: data[0].description,
-          partsUsed: data[0].parts_used || "None",
-          nextServiceDue: data[0].next_service_due 
-            ? new Date(data[0].next_service_due).toISOString().split('T')[0]
-            : ""
-        };
-        
-        setServiceHistory(prev => [...prev, newRecord]);
-        
+      if (saleId) {
         // Update the last service info on the sale
         await supabase
           .from('sales')
           .update({
-            last_service: new Date().toISOString(),
-            last_service_notes: `Service completed for ${service.product}`
+            status: "Serviced",
+            updated_at: new Date().toISOString()
           })
           .eq('id', saleId);
+          
+        // Add the completed service to service history
+        const serviceRecord: ServiceRecord = {
+          id: service.id,
+          saleId: saleId,
+          date: service.scheduledDate || new Date().toISOString().split('T')[0],
+          technician: service.technician,
+          description: `Service completed for ${service.product}`,
+          partsUsed: "None",
+          nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
+        };
+        
+        setServiceHistory(prev => [...prev, serviceRecord]);
       }
     } catch (error) {
       console.error("Error adding service record:", error);
@@ -473,7 +455,8 @@ export default function ServiceManagement() {
                 assigned_to: service.technician !== "Unassigned" ? service.technician : null,
                 status: service.status,
                 asset_id: assetId,
-                requested_by: user.id
+                requested_by: user.id,
+                priority: "medium"
               });
           }
           

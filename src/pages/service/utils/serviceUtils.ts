@@ -51,10 +51,12 @@ export const completeService = async (
   }
 };
 
-// Use a direct function type definition to avoid recursive type references
+// Fixed: Use a simple function type to avoid recursive references
+type ServiceHistoryUpdater = (records: ServiceRecord[]) => void;
+
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: (records: ServiceRecord[]) => void
+  setServiceHistory: ServiceHistoryUpdater
 ) => {
   try {
     let saleId = null;

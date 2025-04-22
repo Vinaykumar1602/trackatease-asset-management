@@ -19,7 +19,7 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
 export const completeService = async (
   service: ServiceItem, 
   setServiceItems: React.Dispatch<React.SetStateAction<ServiceItem[]>>,
-  setServiceHistory: React.Dispatch<React.SetStateAction<ServiceRecord[]>>
+  setServiceHistory: (records: ServiceRecord[]) => void
 ) => {
   try {
     const { error } = await supabase
@@ -51,12 +51,10 @@ export const completeService = async (
   }
 };
 
-// Define a simple function type to avoid deep recursion
-type SetServiceHistoryFunction = (value: ServiceRecord[]) => void;
-
+// Use a direct function type definition to avoid recursive type references
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: SetServiceHistoryFunction
+  setServiceHistory: (records: ServiceRecord[]) => void
 ) => {
   try {
     let saleId = null;

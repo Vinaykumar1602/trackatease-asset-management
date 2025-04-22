@@ -52,14 +52,12 @@ export const completeService = async (
   }
 };
 
-// Use a direct function type for the service history updater to avoid recursive types
-type ServiceHistoryUpdater = {
-  (records: ServiceRecord[]): void;
-}
+// Use a simple function type without nesting to avoid recursive type issues
+type ServiceHistoryUpdaterFn = (records: ServiceRecord[]) => void;
 
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: ServiceHistoryUpdater
+  setServiceHistory: ServiceHistoryUpdaterFn
 ) => {
   try {
     let saleId = null;

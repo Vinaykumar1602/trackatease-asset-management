@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { ServiceItem, ServiceRecord } from "../types";
@@ -38,7 +37,6 @@ export const completeService = async (
       slaStatus: "Met"
     };
     
-    // Fix the type error by correctly typing the callback
     setServiceItems((prev: ServiceItem[]) => prev.map(item => 
       item.id === service.id ? updatedService : item
     ));
@@ -52,12 +50,9 @@ export const completeService = async (
   }
 };
 
-// Use a simple function type without nesting to avoid recursive type issues
-type ServiceHistoryUpdaterFn = (records: ServiceRecord[]) => void;
-
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: ServiceHistoryUpdaterFn
+  setServiceHistory: (records: ServiceRecord[]) => void
 ) => {
   try {
     let saleId = null;
@@ -105,7 +100,6 @@ export const addServiceRecord = async (
         nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
       };
       
-      // Directly call the function with a new array
       setServiceHistory([serviceRecord]);
     }
   } catch (error) {

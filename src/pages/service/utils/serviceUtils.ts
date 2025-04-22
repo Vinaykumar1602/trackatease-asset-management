@@ -1,7 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ServiceItem } from "../types";
-import { ServiceRecord } from "../../sales/types";
+import { ServiceItem, ServiceRecord } from "../types";
 
 export const determineSlaStatus = (scheduledDate: string, status: string): string => {
   if (!scheduledDate || status === "Completed") return "Met";

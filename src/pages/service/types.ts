@@ -30,3 +30,13 @@ export interface CalendarService {
   description: string;
   status: 'scheduled' | 'in progress' | 'completed' | 'cancelled' | 'pending' | 'overdue';
 }
+
+export interface ServiceRecord {
+  id: string;
+  saleId: string;
+  date: string;
+  technician: string;
+  description: string;
+  partsUsed: string;
+  nextServiceDue: string;
+}

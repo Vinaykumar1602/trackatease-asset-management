@@ -22,9 +22,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useServiceData } from "./hooks/useServiceData";
-import { ServiceItem, CalendarService } from "./types";
-import { completeService } from "./utils/serviceUtils";
+import { ServiceItem, CalendarService, ServiceRecord } from "./types";
+import { completeService, determineSlaStatus } from "./utils/serviceUtils";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ServiceManagement() {
   const [searchQuery, setSearchQuery] = useState("");

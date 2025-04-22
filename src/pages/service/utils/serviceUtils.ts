@@ -16,10 +16,14 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
   return "Within SLA";
 };
 
+// Define simple function types to avoid excessive type depth
+type SetServiceItemsFunction = React.Dispatch<React.SetStateAction<ServiceItem[]>>;
+type ServiceHistoryUpdater = (records: ServiceRecord[]) => void;
+
 export const completeService = async (
   service: ServiceItem, 
-  setServiceItems: React.Dispatch<React.SetStateAction<ServiceItem[]>>,
-  setServiceHistory: (records: ServiceRecord[]) => void
+  setServiceItems: SetServiceItemsFunction,
+  setServiceHistory: ServiceHistoryUpdater
 ) => {
   try {
     const { error } = await supabase
@@ -50,9 +54,6 @@ export const completeService = async (
     return false;
   }
 };
-
-// Fixed: Use a simple function type to avoid recursive references
-type ServiceHistoryUpdater = (records: ServiceRecord[]) => void;
 
 export const addServiceRecord = async (
   service: ServiceItem,

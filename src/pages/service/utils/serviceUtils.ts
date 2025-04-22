@@ -52,12 +52,14 @@ export const completeService = async (
   }
 };
 
-// Define a simple function type that accepts a ServiceRecord array
-type SetHistoryFunction = (records: ServiceRecord[]) => void;
+// Use a direct function type for the service history updater to avoid recursive types
+type ServiceHistoryUpdater = {
+  (records: ServiceRecord[]): void;
+}
 
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: SetHistoryFunction
+  setServiceHistory: ServiceHistoryUpdater
 ) => {
   try {
     let saleId = null;

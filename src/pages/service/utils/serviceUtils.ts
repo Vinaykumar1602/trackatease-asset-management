@@ -52,13 +52,12 @@ export const completeService = async (
   }
 };
 
-// Define a simple non-generic function type instead of using React.Dispatch directly
-// This breaks the recursive chain of type references
-type ServiceHistoryUpdater = (updater: (prev: ServiceRecord[]) => ServiceRecord[]) => void;
+// Completely avoid using complex React types
+type SimpleHistoryUpdater = (records: ServiceRecord[]) => void;
 
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: (prev: ServiceRecord[]) => void
+  setServiceHistory: SimpleHistoryUpdater
 ) => {
   try {
     let saleId = null;
@@ -106,8 +105,10 @@ export const addServiceRecord = async (
         nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
       };
       
-      // Simplify how we call setServiceHistory to avoid type recursion
-      setServiceHistory([...service.id ? [] : [], serviceRecord]);
+      // Direct assignment instead of updater function to avoid type recursion
+      const currentHistory: ServiceRecord[] = [];
+      currentHistory.push(serviceRecord);
+      setServiceHistory(currentHistory);
     }
   } catch (error) {
     console.error("Error adding service record:", error);

@@ -1,34 +1,19 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
-  Wrench,
-  Calendar as CalendarIcon,
   Download, 
   Upload, 
-  Plus, 
   Search,
-  Filter,
-  CheckCircle,
-  AlertCircle,
-  Check,
   Table as TableIcon, 
   Calendar
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import { ServiceRecord, ServiceRequestData } from "../sales/types";
 import { ScheduleServiceDialog } from "./components/ScheduleServiceDialog";
 import { ServiceEditDialog } from "./components/ServiceEditDialog";
 import { ServiceCalendarView } from "./components/ServiceCalendarView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ServiceTable } from "./components/ServiceTable";
 import {
   Select,
   SelectContent,
@@ -36,146 +21,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { useServiceData } from "./hooks/useServiceData";
+import { ServiceItem, CalendarService } from "./types";
+import { completeService } from "./utils/serviceUtils";
 import { useAuth } from "@/context/AuthContext";
 
-export interface ServiceItem {
-  id: string;
-  client: string;
-  product: string;
-  serialNo: string;
-  scheduledDate: string;
-  technician: string;
-  status: string;
-  slaStatus: string;
-}
-
-interface SalesData {
-  customer_name?: string;
-  product_name?: string;
-  serial?: string;
-  id?: string;
-  quantity?: number;
-  sale_date?: string;
-  status?: string;
-  amount?: number;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface CalendarService {
-  id: string;
-  assetId: string;
-  scheduledDate: string;
-  description: string;
-  status: 'scheduled' | 'in progress' | 'completed' | 'cancelled' | 'pending' | 'overdue';
-}
-
 export default function ServiceManagement() {
-  const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
-  const [serviceHistory, setServiceHistory] = useState<ServiceRecord[]>([]);
-  
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [editingService, setEditingService] = useState<ServiceItem | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
-  const [loading, setLoading] = useState(true);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
   const { toast } = useToast();
   const { user } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      fetchServiceItems();
-      fetchServiceHistory();
-    }
-  }, [user?.id]);
-
-  const fetchServiceItems = async () => {
-    try {
-      setLoading(true);
-      
-      const { data, error } = await supabase
-        .from('service_requests')
-        .select(`
-          *,
-          sales:asset_id (*)
-        `);
-        
-      if (error) throw error;
-      
-      if (data) {
-        const formattedItems: ServiceItem[] = data.map(item => {
-          const salesData: SalesData = (item.sales as SalesData) || {};
-          
-          return {
-            id: item.id,
-            client: salesData.customer_name || "Unknown Client",
-            product: salesData.product_name || item.title,
-            serialNo: salesData.serial || "N/A",
-            scheduledDate: item.scheduled_date ? new Date(item.scheduled_date).toISOString().split('T')[0] : "Not scheduled",
-            technician: item.assigned_to ? item.assigned_to : "Unassigned",
-            status: item.status || "Pending",
-            slaStatus: determineSlaStatus(item.scheduled_date, item.status)
-          };
-        });
-        
-        setServiceItems(formattedItems);
-      }
-    } catch (error) {
-      console.error("Error fetching service items:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load service data",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchServiceHistory = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('service_requests')
-        .select('*')
-        .eq('status', 'Completed');
-        
-      if (error) throw error;
-      
-      if (data) {
-        const formattedHistory: ServiceRecord[] = data.map(record => ({
-          id: record.id,
-          saleId: record.asset_id || "",
-          date: record.scheduled_date ? new Date(record.scheduled_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          technician: record.assigned_to || "Unknown",
-          description: record.title || "",
-          partsUsed: record.description || "None",
-          nextServiceDue: record.completion_date ? new Date(new Date(record.completion_date).setMonth(new Date(record.completion_date).getMonth() + 3)).toISOString().split('T')[0] : ""
-        }));
-        
-        setServiceHistory(formattedHistory);
-      }
-    } catch (error) {
-      console.error("Error fetching service history:", error);
-    }
-  };
   
-  const determineSlaStatus = (scheduledDate: string, status: string): string => {
-    if (!scheduledDate || status === "Completed") return "Met";
-    
-    const scheduled = new Date(scheduledDate);
-    const today = new Date();
-    
-    if (status === "Overdue" || (scheduled < today && status !== "Completed")) {
-      return "SLA Violated";
-    }
-    
-    return "Within SLA";
-  };
-  
+  const {
+    serviceItems,
+    setServiceItems,
+    serviceHistory,
+    setServiceHistory,
+    loading,
+    fetchServiceItems
+  } = useServiceData(user?.id);
+
   const handleScheduleService = async (newService: Omit<ServiceItem, 'id' | 'slaStatus'>) => {
     try {
       if (!user?.id) return;
@@ -347,38 +216,17 @@ export default function ServiceManagement() {
   };
   
   const handleCompleteService = async (id: string) => {
-    try {
-      const service = serviceItems.find(item => item.id === id);
-      if (!service) return;
-      
-      const { error } = await supabase
-        .from('service_requests')
-        .update({
-          status: "Completed",
-          completion_date: new Date().toISOString()
-        })
-        .eq('id', id);
-        
-      if (error) throw error;
-      
-      const updatedService = {
-        ...service,
-        status: "Completed",
-        slaStatus: "Met"
-      };
-      
-      setServiceItems(prev => prev.map(item => 
-        item.id === id ? updatedService : item
-      ));
-      
-      await handleAddServiceRecord(updatedService);
-      
+    const service = serviceItems.find(item => item.id === id);
+    if (!service) return;
+    
+    const success = await completeService(service, setServiceItems, setServiceHistory);
+    
+    if (success) {
       toast({
         title: "Service Completed",
         description: "The service has been marked as complete."
       });
-    } catch (error) {
-      console.error("Error completing service:", error);
+    } else {
       toast({
         title: "Error",
         description: "Failed to complete service",
@@ -491,12 +339,18 @@ export default function ServiceManagement() {
     }
   };
   
-  const handleViewService = (id: string) => {
-    const service = serviceItems.find(item => item.id === id);
-    if (service) {
-      setEditingService(service);
-    }
-  };
+  const filteredServiceItems = serviceItems.filter(item => {
+    const matchesSearch = 
+      searchQuery === "" || 
+      item.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.product.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.serialNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.technician.toLowerCase().includes(searchQuery.toLowerCase());
+      
+    const matchesStatus = statusFilter === "All" || item.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const servicesForCalendar: CalendarService[] = serviceItems.map(item => {
     let statusValue: CalendarService['status'];
@@ -518,19 +372,6 @@ export default function ServiceManagement() {
       description: item.product,
       status: statusValue
     };
-  });
-
-  const filteredServiceItems = serviceItems.filter(item => {
-    const matchesSearch = 
-      searchQuery === "" || 
-      item.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.product.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.serialNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.technician.toLowerCase().includes(searchQuery.toLowerCase());
-      
-    const matchesStatus = statusFilter === "All" || item.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
   });
 
   if (loading) {
@@ -613,92 +454,25 @@ export default function ServiceManagement() {
         </div>
       </div>
 
-      {viewMode === "table" ? (
-        <div className="border rounded-md">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Client</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>Serial No.</TableHead>
-                <TableHead>Scheduled Date</TableHead>
-                <TableHead>Technician</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>SLA Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredServiceItems.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
-                    No service records found. Schedule a new service or adjust your filters.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredServiceItems.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.client}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Wrench className="h-4 w-4 text-muted-foreground" />
-                        <span>{item.product}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{item.serialNo}</TableCell>
-                    <TableCell>{item.scheduledDate}</TableCell>
-                    <TableCell>{item.technician}</TableCell>
-                    <TableCell>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        item.status === "Scheduled" ? "bg-blue-100 text-blue-800" :
-                        item.status === "Pending" ? "bg-yellow-100 text-yellow-800" :
-                        item.status === "Completed" ? "bg-green-100 text-green-800" :
-                        "bg-red-100 text-red-800"
-                      }`}>
-                        {item.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="flex items-center gap-1">
-                        {item.slaStatus === "Met" || item.slaStatus === "Within SLA" ? (
-                          <CheckCircle className="h-3 w-3 text-green-500" />
-                        ) : (
-                          <AlertCircle className="h-3 w-3 text-red-500" />
-                        )}
-                        <span className="text-sm">{item.slaStatus}</span>
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => setEditingService(item)}
-                      >
-                        Edit
-                      </Button>
-                      {item.status !== "Completed" && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleCompleteService(item.id)}
-                        >
-                          <Check className="h-4 w-4 mr-1" />
-                          Complete
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      ) : (
-        <ServiceCalendarView 
-          services={servicesForCalendar}
-          onServiceClick={(id: string) => handleViewService(id)}
-        />
-      )}
+      <div className="border rounded-md">
+        {viewMode === "table" ? (
+          <ServiceTable 
+            services={filteredServiceItems}
+            onEdit={setEditingService}
+            onComplete={handleCompleteService}
+          />
+        ) : (
+          <ServiceCalendarView 
+            services={servicesForCalendar}
+            onServiceClick={(id: string) => {
+              const service = serviceItems.find(item => item.id === id);
+              if (service) {
+                setEditingService(service);
+              }
+            }}
+          />
+        )}
+      </div>
 
       {editingService && (
         <ServiceEditDialog

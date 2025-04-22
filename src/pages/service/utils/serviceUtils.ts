@@ -52,12 +52,13 @@ export const completeService = async (
   }
 };
 
-// Explicitly define the callback type to avoid recursive type issues
-type SetServiceHistoryFunction = React.Dispatch<React.SetStateAction<ServiceRecord[]>>;
+// Define a simple non-generic function type instead of using React.Dispatch directly
+// This breaks the recursive chain of type references
+type ServiceHistoryUpdater = (updater: (prev: ServiceRecord[]) => ServiceRecord[]) => void;
 
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: SetServiceHistoryFunction
+  setServiceHistory: ServiceHistoryUpdater
 ) => {
   try {
     let saleId = null;
@@ -105,8 +106,8 @@ export const addServiceRecord = async (
         nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
       };
       
-      // Fix the type error by correctly typing the callback using the explicit type
-      setServiceHistory((prev: ServiceRecord[]) => [...prev, serviceRecord]);
+      // Use the simplified callback signature
+      setServiceHistory(prev => [...prev, serviceRecord]);
     }
   } catch (error) {
     console.error("Error adding service record:", error);

@@ -492,13 +492,17 @@ export default function ServiceManagement() {
     status: 'scheduled' | 'in progress' | 'completed' | 'cancelled' | 'pending' | 'overdue';
   }
 
-  const servicesForCalendar: CalendarService[] = serviceItems.map(item => ({
-    id: item.id,
-    assetId: item.id,
-    scheduledDate: item.scheduledDate,
-    description: item.product,
-    status: item.status.toLowerCase() as 'scheduled' | 'in progress' | 'completed' | 'cancelled' | 'pending' | 'overdue'
-  }));
+  const servicesForCalendar: CalendarService[] = serviceItems.map(item => {
+    const status = item.status.toLowerCase() as CalendarService['status'];
+    
+    return {
+      id: item.id,
+      assetId: item.id,
+      scheduledDate: item.scheduledDate,
+      description: item.product,
+      status: status
+    };
+  });
 
   const filteredServiceItems = serviceItems.filter(item => {
     const matchesSearch = 

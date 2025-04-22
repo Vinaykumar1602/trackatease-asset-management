@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { ServiceItem, ServiceRecord } from "../types";
@@ -50,9 +51,12 @@ export const completeService = async (
   }
 };
 
+// Define a simple function type to avoid deep recursion
+type SetServiceHistoryFunction = (value: ServiceRecord[]) => void;
+
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: (records: ServiceRecord[]) => void
+  setServiceHistory: SetServiceHistoryFunction
 ) => {
   try {
     let saleId = null;

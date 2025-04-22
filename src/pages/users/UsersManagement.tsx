@@ -34,6 +34,9 @@ import {
 import { DeleteUserDialog } from "./components/DeleteUserDialog";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
+
+type AppRole = Database["public"]["Enums"]["app_role"];
 
 export default function UsersManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -79,16 +82,20 @@ export default function UsersManagement() {
       if (profilesError) throw profilesError;
       
       if (profilesData) {
-        const formattedUsers = profilesData.map(profile => ({
-          id: profile.id,
-          name: profile.name || profile.email?.split('@')[0] || "User",
-          email: profile.email || "",
-          role: profile.user_roles?.[0]?.role || "User",
-          department: profile.department || "General",
-          status: "Active",
-          lastLogin: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : "Never",
-          permissions: []
-        }));
+        const formattedUsers = profilesData.map(profile => {
+          const userRole = profile.user_roles?.[0]?.role || "user";
+          
+          return {
+            id: profile.id,
+            name: profile.name || profile.email?.split('@')[0] || "User",
+            email: profile.email || "",
+            role: userRole as string,
+            department: profile.department || "General",
+            status: "Active",
+            lastLogin: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : "Never",
+            permissions: []
+          };
+        });
         
         setUsers(formattedUsers);
       }
@@ -129,6 +136,13 @@ export default function UsersManagement() {
           lastLogin: "Never"
         };
         
+        await supabase
+          .from('user_roles')
+          .upsert({
+            user_id: data[0].id,
+            role: mapToValidRole(userData.role)
+          });
+        
         setUsers(prev => [...prev, newUser]);
         
         toast({
@@ -144,6 +158,16 @@ export default function UsersManagement() {
         variant: "destructive"
       });
     }
+  };
+
+  const mapToValidRole = (role: string): AppRole => {
+    const validRoles: AppRole[] = ["admin", "technician", "auditor", "inventory_manager", "user"];
+    
+    if (validRoles.includes(role.toLowerCase() as AppRole)) {
+      return role.toLowerCase() as AppRole;
+    }
+    
+    return "user";
   };
 
   const handleUpdateUser = async (updatedUser: User) => {
@@ -173,7 +197,7 @@ export default function UsersManagement() {
         .from('user_roles')
         .upsert({
           user_id: updatedUser.id,
-          role: updatedUser.role.toLowerCase()
+          role: mapToValidRole(updatedUser.role)
         });
       
       if (roleError) throw roleError;

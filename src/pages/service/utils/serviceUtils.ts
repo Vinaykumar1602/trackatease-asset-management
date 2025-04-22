@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { ServiceItem, ServiceRecord } from "../types";
 
@@ -14,13 +15,14 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
   return "Within SLA";
 };
 
-type SetServiceItemsFunction = (items: ServiceItem[]) => void;
-type SetServiceHistoryFunction = (records: ServiceRecord[]) => void;
+// Define explicit function types to prevent TypeScript recursion issues
+type SetServiceItemsFunc = React.Dispatch<React.SetStateAction<ServiceItem[]>>;
+type SetServiceHistoryFunc = React.Dispatch<React.SetStateAction<ServiceRecord[]>>;
 
 export const completeService = async (
   service: ServiceItem, 
-  setServiceItems: SetServiceItemsFunction,
-  setServiceHistory: SetServiceHistoryFunction
+  setServiceItems: SetServiceItemsFunc,
+  setServiceHistory: SetServiceHistoryFunc
 ) => {
   try {
     const { error } = await supabase
@@ -39,7 +41,7 @@ export const completeService = async (
       slaStatus: "Met"
     };
     
-    setServiceItems((prev: ServiceItem[]) => prev.map(item => 
+    setServiceItems(prev => prev.map(item => 
       item.id === service.id ? updatedService : item
     ));
     
@@ -54,7 +56,7 @@ export const completeService = async (
 
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: SetServiceHistoryFunction
+  setServiceHistory: SetServiceHistoryFunc
 ) => {
   try {
     let saleId = null;
@@ -102,7 +104,7 @@ export const addServiceRecord = async (
         nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
       };
       
-      setServiceHistory([serviceRecord]);
+      setServiceHistory(prev => [...prev, serviceRecord]);
     }
   } catch (error) {
     console.error("Error adding service record:", error);

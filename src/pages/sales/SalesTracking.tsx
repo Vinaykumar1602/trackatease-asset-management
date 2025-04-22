@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,12 +49,12 @@ export default function SalesTracking() {
   const [clientFilter, setClientFilter] = useState("All");
   const [warrantyFilter, setWarrantyFilter] = useState("All");
   const [viewingServiceHistory, setViewingServiceHistory] = useState(false);
-  const [serviceHistoryForItem, setServiceHistoryForItem] = useState<number | null>(null);
+  const [serviceHistoryForItem, setServiceHistoryForItem] = useState<string | null>(null);
   const [viewingProductDetails, setViewingProductDetails] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<SalesItem | null>(null);
   const [productLookupOpen, setProductLookupOpen] = useState(false);
 
-  const handleViewServiceHistory = (id: number) => {
+  const handleViewServiceHistory = (id: string) => {
     setServiceHistoryForItem(id);
     setViewingServiceHistory(true);
   };
@@ -72,15 +71,13 @@ export default function SalesTracking() {
     }
   };
 
-  // Convert salesItems to format expected by ProductLookupWithQR
   const productsForLookup: Product[] = salesItems.map(item => ({
-    id: String(item.id),
+    id: item.id,
     name: item.productName,
     sku: item.serialNo,
     // Add any other required properties
   }));
 
-  // Update filtered sales items logic
   const filteredSalesItems = salesItems.filter(item => {
     const matchesSearch = searchQuery === "" || 
       item.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -90,8 +87,6 @@ export default function SalesTracking() {
     const matchesStatus = statusFilter === "All" || item.status === statusFilter;
     const matchesClient = clientFilter === "All" || item.client === clientFilter;
     
-    // Fix: The issue is here - there's no warrantyStatus property in SalesItem
-    // Let's use the status field when the filter is specifically about warranty
     const matchesWarranty = warrantyFilter === "All" || 
                           (warrantyFilter === "Valid" && item.status === "Warranty Only") ||
                           (warrantyFilter === "Expiring Soon" && item.status === "Expiring Soon") ||
@@ -135,10 +130,10 @@ export default function SalesTracking() {
                 <SelectContent>
                   <SelectItem value="All">All Statuses</SelectItem>
                   <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Serviced">Serviced</SelectItem>
                   <SelectItem value="Expiring Soon">Expiring Soon</SelectItem>
                   <SelectItem value="Warranty Only">Warranty Only</SelectItem>
                   <SelectItem value="Expired">Expired</SelectItem>
-                  <SelectItem value="Product Fully Written Off">Product Fully Written Off</SelectItem>
                 </SelectContent>
               </Select>
             </div>

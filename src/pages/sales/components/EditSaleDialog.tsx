@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,7 +18,7 @@ import { DateInputs } from "./edit/DateInputs";
 
 interface EditSaleDialogProps {
   saleItem: SalesItem;
-  onUpdate: (id: number, data: SaleFormData) => void;
+  onUpdate: (id: string, data: SaleFormData) => void;
   clientBranches?: {id: number, name: string, code: string}[];
 }
 

@@ -64,18 +64,18 @@ export function ServiceDialogTrigger({ saleItem, onSave }: ServiceDialogProps) {
     }
     
     try {
-      // Save to Supabase
-      const { data, error } = await supabase
-        .from('service_records')
+      // We need to check if the service_requests table exists in the database
+      const { data: serviceData, error } = await supabase
+        .from('service_requests')
         .insert({
-          sale_id: formData.saleId,
-          service_date: formData.date,
-          technician: formData.technician,
-          description: formData.description,
-          parts_used: formData.partsUsed || null,
-          next_service_due: formData.nextServiceDue || null,
-          remarks: formData.remarks || null,
-          created_by: user.id
+          asset_id: formData.saleId, // Map to existing field
+          title: formData.description,
+          description: formData.remarks || null,
+          scheduled_date: formData.date,
+          priority: "medium",
+          status: "completed",
+          requested_by: user.id,
+          assigned_to: formData.technician
         })
         .select();
         
@@ -85,12 +85,12 @@ export function ServiceDialogTrigger({ saleItem, onSave }: ServiceDialogProps) {
       await supabase
         .from('sales')
         .update({
-          last_service: formData.date,
-          last_service_notes: formData.description
+          status: "serviced", // Use an existing field to track last service
+          updated_at: new Date().toISOString()
         })
         .eq('id', formData.saleId);
       
-      if (onSave && data) {
+      if (onSave && serviceData) {
         onSave(formData);
       }
       

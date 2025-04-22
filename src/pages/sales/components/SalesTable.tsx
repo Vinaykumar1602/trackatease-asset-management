@@ -20,9 +20,9 @@ import {
 interface SalesTableProps {
   items: SalesItem[];
   onEdit: (item: SalesItem) => void;
-  onViewHistory: (id: number) => void;
-  onDelete: (id: number) => void;
-  onUpdate: (id: number, data: any) => void;
+  onViewHistory: (id: string) => void;  // Changed from number to string
+  onDelete: (id: string) => void;  // Changed from number to string
+  onUpdate: (id: string, data: any) => void;  // Changed from number to string
   clientBranches?: {id: number, name: string, code: string}[];
   onView?: (item: SalesItem) => void;
 }
@@ -92,9 +92,9 @@ export function SalesTable({
               <TableCell>
                 <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 w-fit ${
                   item.status === "Active" ? "bg-green-100 text-green-800" :
+                  item.status === "Serviced" ? "bg-blue-100 text-blue-800" :
                   item.status === "Expiring Soon" ? "bg-yellow-100 text-yellow-800" :
                   item.status === "Warranty Only" ? "bg-blue-100 text-blue-800" :
-                  item.status === "Product Fully Written Off" ? "bg-purple-100 text-purple-800" :
                   "bg-red-100 text-red-800"
                 }`}>
                   {item.status === "Expiring Soon" && <AlertTriangle className="h-3 w-3" />}

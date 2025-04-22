@@ -21,6 +21,7 @@ import Reports from "./pages/reports/Reports";
 import UsersManagement from "./pages/users/UsersManagement";
 import Settings from "./pages/settings/Settings";
 import Profile from "./pages/profile/Profile";
+import AdminSetup from "./components/admin/AdminSetup";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/" element={<LandingPage />} />
           <Route path="/index" element={<Index />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/admin-setup" element={<AdminSetup />} />
           <Route path="/" element={
             <ProtectedRoute>
               <MainLayout />

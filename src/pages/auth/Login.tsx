@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BarChart2, Lock, Mail, KeyRound, User } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { BarChart2, Lock, Mail, KeyRound, User, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -279,6 +279,15 @@ export default function Login() {
             </div>
           </CardHeader>
         </Card>
+
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <Shield className="h-4 w-4 text-muted-foreground" />
+            <Link to="/admin-setup" className="text-sm text-muted-foreground hover:text-primary">
+              Admin Setup
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

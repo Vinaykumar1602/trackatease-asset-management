@@ -15,14 +15,14 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
   return "Within SLA";
 };
 
-// Define explicit function types to prevent TypeScript recursion issues
-type SetServiceItemsFunc = React.Dispatch<React.SetStateAction<ServiceItem[]>>;
-type SetServiceHistoryFunc = React.Dispatch<React.SetStateAction<ServiceRecord[]>>;
+// Define the function types to avoid TypeScript recursion issues
+type SetServiceItemsFunction = (items: ServiceItem[] | ((prev: ServiceItem[]) => ServiceItem[])) => void;
+type SetServiceHistoryFunction = (history: ServiceRecord[] | ((prev: ServiceRecord[]) => ServiceRecord[])) => void;
 
 export const completeService = async (
   service: ServiceItem, 
-  setServiceItems: SetServiceItemsFunc,
-  setServiceHistory: SetServiceHistoryFunc
+  setServiceItems: SetServiceItemsFunction,
+  setServiceHistory: SetServiceHistoryFunction
 ) => {
   try {
     const { error } = await supabase
@@ -56,7 +56,7 @@ export const completeService = async (
 
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: SetServiceHistoryFunc
+  setServiceHistory: SetServiceHistoryFunction
 ) => {
   try {
     let saleId = null;
@@ -104,8 +104,7 @@ export const addServiceRecord = async (
         nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
       };
       
-      // Directly update the state with the new record
-      // Using a simple function to avoid TypeScript infinite recursion
+      // Update the state with the new record
       setServiceHistory(prevHistory => [...prevHistory, serviceRecord]);
     }
   } catch (error) {

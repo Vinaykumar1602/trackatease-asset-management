@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -51,19 +50,23 @@ export interface ServiceItem {
   slaStatus: string;
 }
 
+interface SalesData {
+  customer_name?: string;
+  product_name?: string;
+  serial?: string;
+  [key: string]: any;
+}
+
 export default function ServiceManagement() {
-  // State for service items
   const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
   const [serviceHistory, setServiceHistory] = useState<ServiceRecord[]>([]);
   
-  // State for search and filters
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [editingService, setEditingService] = useState<ServiceItem | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const [loading, setLoading] = useState(true);
   
-  // Ref for file upload
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { toast } = useToast();
@@ -91,12 +94,10 @@ export default function ServiceManagement() {
       
       if (data) {
         const formattedItems: ServiceItem[] = data.map(item => {
-          // Safely access sales data, with fallbacks
-          const salesData = item.sales || {};
+          const salesData = (item.sales || {}) as SalesData;
           
           return {
             id: item.id,
-            // Use optional chaining and provide fallbacks
             client: salesData.customer_name || "Unknown Client",
             product: salesData.product_name || item.title,
             serialNo: salesData.serial || "N/A",
@@ -123,7 +124,6 @@ export default function ServiceManagement() {
 
   const fetchServiceHistory = async () => {
     try {
-      // Since there's no service_records table, we'll use completed service_requests instead
       const { data, error } = await supabase
         .from('service_requests')
         .select('*')
@@ -162,12 +162,10 @@ export default function ServiceManagement() {
     return "Within SLA";
   };
   
-  // Handle scheduling a new service
   const handleScheduleService = async (newService: Omit<ServiceItem, 'id' | 'slaStatus'>) => {
     try {
       if (!user?.id) return;
       
-      // Find the asset_id based on serialNo if available
       let assetId = null;
       
       if (newService.serialNo && newService.serialNo !== "N/A") {
@@ -175,7 +173,7 @@ export default function ServiceManagement() {
           .from('sales')
           .select('id')
           .eq('serial', newService.serialNo)
-          .single();
+          .maybeSingle();
           
         if (assetData) {
           assetId = assetData.id;
@@ -226,7 +224,6 @@ export default function ServiceManagement() {
   
   const handleEditService = async (updatedService: ServiceItem) => {
     try {
-      // Find the asset_id based on serialNo if available
       let assetId = null;
       
       if (updatedService.serialNo && updatedService.serialNo !== "N/A") {
@@ -259,9 +256,7 @@ export default function ServiceManagement() {
         item.id === updatedService.id ? updatedService : item
       ));
       
-      // Add to history if status is changed to Completed
       if (updatedService.status === "Completed" && editingService?.status !== "Completed") {
-        // Create a service record if service is completed
         await handleAddServiceRecord(updatedService);
       }
       
@@ -285,7 +280,6 @@ export default function ServiceManagement() {
     try {
       if (!user?.id) return;
       
-      // Try to find associated sale record
       let saleId = null;
       
       if (service.serialNo && service.serialNo !== "N/A") {
@@ -301,7 +295,6 @@ export default function ServiceManagement() {
       }
       
       if (!saleId) {
-        // If no sale found but there's an asset_id in the service request
         const { data: serviceData } = await supabase
           .from('service_requests')
           .select('asset_id')
@@ -314,7 +307,6 @@ export default function ServiceManagement() {
       }
       
       if (saleId) {
-        // Update the last service info on the sale
         await supabase
           .from('sales')
           .update({
@@ -323,7 +315,6 @@ export default function ServiceManagement() {
           })
           .eq('id', saleId);
           
-        // Add the completed service to service history
         const serviceRecord: ServiceRecord = {
           id: service.id,
           saleId: saleId,
@@ -366,7 +357,6 @@ export default function ServiceManagement() {
         item.id === id ? updatedService : item
       ));
       
-      // Add service record to history
       await handleAddServiceRecord(updatedService);
       
       toast({
@@ -421,12 +411,11 @@ export default function ServiceManagement() {
         const rows = text.split('\n').filter(row => row.trim());
         const headers = rows[0].split(',');
         
-        // Skip header row
         const importedServices = rows.slice(1).map(row => {
           const values = row.split(',');
           return {
             client: values[1] || "",
-            title: values[2] || "", // Product name will be stored as title
+            title: values[2] || "",
             serialNo: values[3] || "",
             scheduledDate: values[4] || new Date().toISOString(),
             technician: values[5] || "",
@@ -437,9 +426,7 @@ export default function ServiceManagement() {
         const validServices = importedServices.filter(service => service.title);
         
         if (validServices.length > 0) {
-          // Insert services into database
           for (const service of validServices) {
-            // Try to find associated sale/asset
             let assetId = null;
             
             if (service.serialNo) {
@@ -467,7 +454,6 @@ export default function ServiceManagement() {
               });
           }
           
-          // Refresh the service items
           fetchServiceItems();
           
           toast({
@@ -486,7 +472,6 @@ export default function ServiceManagement() {
     };
     reader.readAsText(file);
     
-    // Clear the input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -499,7 +484,6 @@ export default function ServiceManagement() {
     }
   };
 
-  // Convert ServiceItems to format needed by ServiceCalendarView
   const servicesForCalendar = serviceItems.map(item => ({
     id: item.id,
     assetId: item.id,
@@ -507,10 +491,8 @@ export default function ServiceManagement() {
     description: item.product,
     status: item.status.toLowerCase() as 'scheduled' | 'in progress' | 'completed' | 'cancelled'
   }));
-  
-  // Filter service items based on search query and status filter
+
   const filteredServiceItems = serviceItems.filter(item => {
-    // Search filter
     const matchesSearch = 
       searchQuery === "" || 
       item.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -518,7 +500,6 @@ export default function ServiceManagement() {
       item.serialNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.technician.toLowerCase().includes(searchQuery.toLowerCase());
       
-    // Status filter
     const matchesStatus = statusFilter === "All" || item.status === statusFilter;
     
     return matchesSearch && matchesStatus;
@@ -691,7 +672,6 @@ export default function ServiceManagement() {
         />
       )}
 
-      {/* Edit Service Dialog */}
       {editingService && (
         <ServiceEditDialog
           service={editingService}

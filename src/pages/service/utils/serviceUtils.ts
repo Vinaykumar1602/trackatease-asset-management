@@ -17,8 +17,8 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
 
 export const completeService = async (
   service: ServiceItem, 
-  setServiceItems: (items: ServiceItem[]) => void,
-  setServiceHistory: (history: ServiceRecord[]) => void
+  setServiceItems: React.Dispatch<React.SetStateAction<ServiceItem[]>>,
+  setServiceHistory: React.Dispatch<React.SetStateAction<ServiceRecord[]>>
 ) => {
   try {
     const { error } = await supabase
@@ -37,7 +37,8 @@ export const completeService = async (
       slaStatus: "Met"
     };
     
-    setServiceItems(prev => prev.map(item => 
+    // Fix the type error by correctly typing the callback
+    setServiceItems((prev: ServiceItem[]) => prev.map(item => 
       item.id === service.id ? updatedService : item
     ));
     
@@ -52,7 +53,7 @@ export const completeService = async (
 
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: (history: ServiceRecord[]) => void
+  setServiceHistory: React.Dispatch<React.SetStateAction<ServiceRecord[]>>
 ) => {
   try {
     let saleId = null;
@@ -100,7 +101,8 @@ export const addServiceRecord = async (
         nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
       };
       
-      setServiceHistory(prev => [...prev, serviceRecord]);
+      // Fix the type error by correctly typing the callback
+      setServiceHistory((prev: ServiceRecord[]) => [...prev, serviceRecord]);
     }
   } catch (error) {
     console.error("Error adding service record:", error);

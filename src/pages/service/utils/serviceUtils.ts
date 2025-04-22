@@ -58,7 +58,7 @@ type ServiceHistoryUpdater = (updater: (prev: ServiceRecord[]) => ServiceRecord[
 
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: ServiceHistoryUpdater
+  setServiceHistory: (prev: ServiceRecord[]) => void
 ) => {
   try {
     let saleId = null;
@@ -106,8 +106,8 @@ export const addServiceRecord = async (
         nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
       };
       
-      // Use the simplified callback signature
-      setServiceHistory(prev => [...prev, serviceRecord]);
+      // Simplify how we call setServiceHistory to avoid type recursion
+      setServiceHistory([...service.id ? [] : [], serviceRecord]);
     }
   } catch (error) {
     console.error("Error adding service record:", error);

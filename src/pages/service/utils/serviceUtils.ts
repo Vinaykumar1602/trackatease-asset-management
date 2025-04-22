@@ -104,7 +104,15 @@ export const addServiceRecord = async (
         nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
       };
       
-      setServiceHistory(prev => [...prev, serviceRecord]);
+      // Use a simple approach to avoid deep type instantiation
+      const currentHistory = await supabase
+        .from('service_records')
+        .select('*')
+        .eq('service_id', service.id);
+        
+      if (!currentHistory.error) {
+        setServiceHistory(prev => [...prev, serviceRecord]);
+      }
     }
   } catch (error) {
     console.error("Error adding service record:", error);

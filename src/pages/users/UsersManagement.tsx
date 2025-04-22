@@ -83,7 +83,8 @@ export default function UsersManagement() {
       
       if (profilesData) {
         const formattedUsers = profilesData.map(profile => {
-          const userRole = profile.user_roles?.[0]?.role || "user";
+          const userRole = profile.user_roles && profile.user_roles[0] ? 
+            profile.user_roles[0].role : 'user';
           
           return {
             id: profile.id,

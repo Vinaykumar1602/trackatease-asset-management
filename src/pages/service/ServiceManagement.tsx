@@ -54,7 +54,13 @@ interface SalesData {
   customer_name?: string;
   product_name?: string;
   serial?: string;
-  [key: string]: any;
+  id?: string;
+  quantity?: number;
+  sale_date?: string;
+  status?: string;
+  amount?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export default function ServiceManagement() {
@@ -149,7 +155,7 @@ export default function ServiceManagement() {
     }
   };
   
-  const determineSlaStatus = (scheduledDate: string, status: string) => {
+  const determineSlaStatus = (scheduledDate: string, status: string): string => {
     if (!scheduledDate || status === "Completed") return "Met";
     
     const scheduled = new Date(scheduledDate);
@@ -493,14 +499,24 @@ export default function ServiceManagement() {
   }
 
   const servicesForCalendar: CalendarService[] = serviceItems.map(item => {
-    const status = item.status.toLowerCase() as CalendarService['status'];
+    let statusValue: CalendarService['status'];
+    
+    const lowercaseStatus = item.status.toLowerCase();
+    
+    if (lowercaseStatus === 'scheduled') statusValue = 'scheduled';
+    else if (lowercaseStatus === 'in progress') statusValue = 'in progress';
+    else if (lowercaseStatus === 'completed') statusValue = 'completed';
+    else if (lowercaseStatus === 'cancelled') statusValue = 'cancelled';
+    else if (lowercaseStatus === 'pending') statusValue = 'pending';
+    else if (lowercaseStatus === 'overdue') statusValue = 'overdue';
+    else statusValue = 'pending';
     
     return {
       id: item.id,
       assetId: item.id,
       scheduledDate: item.scheduledDate,
       description: item.product,
-      status: status
+      status: statusValue
     };
   });
 

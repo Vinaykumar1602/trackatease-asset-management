@@ -52,12 +52,12 @@ export const completeService = async (
   }
 };
 
-// Completely avoid using complex React types
-type SimpleHistoryUpdater = (records: ServiceRecord[]) => void;
+// Using a simple function type instead of React.Dispatch to break type recursion
+type HistoryUpdaterFunction = (history: ServiceRecord[]) => void;
 
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: SimpleHistoryUpdater
+  setServiceHistory: HistoryUpdaterFunction
 ) => {
   try {
     let saleId = null;
@@ -105,10 +105,9 @@ export const addServiceRecord = async (
         nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
       };
       
-      // Direct assignment instead of updater function to avoid type recursion
-      const currentHistory: ServiceRecord[] = [];
-      currentHistory.push(serviceRecord);
-      setServiceHistory(currentHistory);
+      // Create a new array and pass it directly to the setter function
+      const newHistory = [serviceRecord];
+      setServiceHistory(newHistory);
     }
   } catch (error) {
     console.error("Error adding service record:", error);

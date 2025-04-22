@@ -94,7 +94,7 @@ export default function ServiceManagement() {
       
       if (data) {
         const formattedItems: ServiceItem[] = data.map(item => {
-          const salesData = item.sales as SalesData || {};
+          const salesData: SalesData = (item.sales as SalesData) || {};
           
           return {
             id: item.id,
@@ -484,7 +484,15 @@ export default function ServiceManagement() {
     }
   };
 
-  const servicesForCalendar = serviceItems.map(item => ({
+  interface CalendarService {
+    id: string;
+    assetId: string;
+    scheduledDate: string;
+    description: string;
+    status: 'scheduled' | 'in progress' | 'completed' | 'cancelled' | 'pending' | 'overdue';
+  }
+
+  const servicesForCalendar: CalendarService[] = serviceItems.map(item => ({
     id: item.id,
     assetId: item.id,
     scheduledDate: item.scheduledDate,

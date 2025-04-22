@@ -10,13 +10,13 @@ interface Service {
   assetId: string;
   scheduledDate: string;
   description: string;
-  status: 'scheduled' | 'in progress' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'in progress' | 'completed' | 'cancelled' | 'pending' | 'overdue';
 }
 
 interface ServiceCalendarViewProps {
   services: Service[];
   serviceItems?: any[];
-  onServiceClick?: (id: number) => void;
+  onServiceClick?: (id: string) => void;
 }
 
 export function ServiceCalendarView({ services, serviceItems, onServiceClick }: ServiceCalendarViewProps) {
@@ -29,7 +29,7 @@ export function ServiceCalendarView({ services, serviceItems, onServiceClick }: 
       assetId: String(item.id),
       scheduledDate: item.scheduledDate,
       description: item.product,
-      status: item.status.toLowerCase() as 'scheduled' | 'in progress' | 'completed' | 'cancelled'
+      status: item.status.toLowerCase() as 'scheduled' | 'in progress' | 'completed' | 'cancelled' | 'pending' | 'overdue'
     })) : 
     services;
 
@@ -62,7 +62,7 @@ export function ServiceCalendarView({ services, serviceItems, onServiceClick }: 
   // Handle service click
   const handleServiceClick = (serviceId: string) => {
     if (onServiceClick) {
-      onServiceClick(Number(serviceId));
+      onServiceClick(serviceId);
     }
   };
 

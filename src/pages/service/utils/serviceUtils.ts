@@ -41,9 +41,9 @@ export const completeService = async (
       slaStatus: "Met"
     };
     
-    setServiceItems(prev => prev.map(item => 
-      item.id === service.id ? updatedService : item
-    ));
+    setServiceItems(currentItems => 
+      currentItems.map(item => item.id === service.id ? updatedService : item)
+    );
     
     await addServiceRecord(updatedService, setServiceHistory);
     
@@ -104,9 +104,9 @@ export const addServiceRecord = async (
         nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
       };
       
-      // Instead of trying to query a non-existent service_records table,
-      // directly update the state with the new record
-      setServiceHistory((prev) => [...prev, serviceRecord]);
+      // Directly update the state with the new record
+      // Using a simple function to avoid TypeScript infinite recursion
+      setServiceHistory(prevHistory => [...prevHistory, serviceRecord]);
     }
   } catch (error) {
     console.error("Error adding service record:", error);

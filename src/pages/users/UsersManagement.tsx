@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -83,8 +84,13 @@ export default function UsersManagement() {
       
       if (profilesData) {
         const formattedUsers = profilesData.map(profile => {
-          const userRole = profile.user_roles && profile.user_roles.length > 0 
-            ? String(profile.user_roles[0]?.role) 
+          // Extract role safely - ensure it's a string even if not present
+          const userRoleObj = profile.user_roles && Array.isArray(profile.user_roles) && profile.user_roles.length > 0 
+            ? profile.user_roles[0] 
+            : null;
+          
+          const userRole = userRoleObj && typeof userRoleObj === 'object' && 'role' in userRoleObj
+            ? String(userRoleObj.role)
             : 'user';
           
           return {

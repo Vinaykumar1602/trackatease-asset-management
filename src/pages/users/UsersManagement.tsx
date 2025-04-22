@@ -49,61 +49,48 @@ export default function UsersManagement() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!isAdmin) {
+      toast({
+        title: "Access Denied",
+        description: "You need admin privileges to access this page.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (authUser) {
       fetchUsers();
     }
-  }, [authUser]);
+  }, [authUser, isAdmin]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       
-      if (!isAdmin) {
-        if (authUser) {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', authUser.id)
-            .single();
-          
-          if (profileError) throw profileError;
-          
-          if (profileData) {
-            const userData: User = {
-              id: profileData.id,
-              name: profileData.name || authUser.email?.split('@')[0] || "User",
-              email: profileData.email || authUser.email || "",
-              role: profileData.role || "User",
-              department: profileData.department || "General",
-              status: "Active",
-              lastLogin: "Now",
-              permissions: []
-            };
-            
-            setUsers([userData]);
-          }
-        }
-      } else {
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('*');
-          
-        if (profilesError) throw profilesError;
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          user_roles (
+            role
+          )
+        `);
         
-        if (profilesData) {
-          const formattedUsers = profilesData.map(profile => ({
-            id: profile.id,
-            name: profile.name || profile.email?.split('@')[0] || "User",
-            email: profile.email || "",
-            role: profile.role || "User",
-            department: profile.department || "General",
-            status: "Active",
-            lastLogin: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : "Never",
-            permissions: []
-          }));
-          
-          setUsers(formattedUsers);
-        }
+      if (profilesError) throw profilesError;
+      
+      if (profilesData) {
+        const formattedUsers = profilesData.map(profile => ({
+          id: profile.id,
+          name: profile.name || profile.email?.split('@')[0] || "User",
+          email: profile.email || "",
+          role: profile.user_roles?.[0]?.role || "User",
+          department: profile.department || "General",
+          status: "Active",
+          lastLogin: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : "Never",
+          permissions: []
+        }));
+        
+        setUsers(formattedUsers);
       }
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -161,26 +148,35 @@ export default function UsersManagement() {
 
   const handleUpdateUser = async (updatedUser: User) => {
     try {
-      if (!isAdmin && updatedUser.id !== authUser?.id) {
+      if (!isAdmin) {
         toast({
           title: "Permission Denied",
-          description: "You can only edit your own profile",
+          description: "Only administrators can update users",
           variant: "destructive"
         });
         return;
       }
       
-      const { error } = await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           name: updatedUser.name,
-          role: updatedUser.role,
+          email: updatedUser.email,
           department: updatedUser.department,
           updated_at: new Date().toISOString()
         })
         .eq('id', updatedUser.id);
       
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: updatedUser.id,
+          role: updatedUser.role.toLowerCase()
+        });
+      
+      if (roleError) throw roleError;
       
       setUsers(prev => prev.map(user => 
         user.id === updatedUser.id ? updatedUser : user
@@ -352,12 +348,12 @@ export default function UsersManagement() {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  if (loading) {
+  if (!isAdmin) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p>Loading users...</p>
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
+          <p className="text-gray-600 mt-2">You need administrator privileges to access this page.</p>
         </div>
       </div>
     );

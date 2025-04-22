@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ServiceItem, ServiceRecord } from "../types";
 
@@ -15,14 +14,13 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
   return "Within SLA";
 };
 
-// Use type alias with no recursive references
-type SetServiceItemsFunc = (value: React.SetStateAction<ServiceItem[]>) => void;
-type SetServiceHistoryFunc = (records: ServiceRecord[]) => void;
+type SetServiceItemsFunction = (items: ServiceItem[]) => void;
+type SetServiceHistoryFunction = (records: ServiceRecord[]) => void;
 
 export const completeService = async (
   service: ServiceItem, 
-  setServiceItems: SetServiceItemsFunc,
-  setServiceHistory: SetServiceHistoryFunc
+  setServiceItems: SetServiceItemsFunction,
+  setServiceHistory: SetServiceHistoryFunction
 ) => {
   try {
     const { error } = await supabase
@@ -56,7 +54,7 @@ export const completeService = async (
 
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: SetServiceHistoryFunc
+  setServiceHistory: SetServiceHistoryFunction
 ) => {
   try {
     let saleId = null;

@@ -4,8 +4,8 @@ import {
   Table, TableBody, TableCell, 
   TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
-import { ShoppingCart, AlertTriangle, FileText, Search, Trash2, Eye } from "lucide-react";
-import { SalesItem } from "../types";
+import { ShoppingCart, AlertTriangle, FileText, Eye } from "lucide-react";
+import { SalesItem, SaleFormData } from "../types";
 import { ServiceDialogTrigger } from "./ServiceDialog";
 import { DeleteSaleDialog } from "./DeleteSaleDialog";
 import { EditSaleDialog } from "./EditSaleDialog";
@@ -20,9 +20,9 @@ import {
 interface SalesTableProps {
   items: SalesItem[];
   onEdit: (item: SalesItem) => void;
-  onViewHistory: (id: string) => void;  // Changed from number to string
-  onDelete: (id: string) => void;  // Changed from number to string
-  onUpdate: (id: string, data: any) => void;  // Changed from number to string
+  onViewHistory: (id: string) => void;
+  onDelete: (id: string) => void;
+  onUpdate: (id: string, data: SaleFormData) => void;
   clientBranches?: {id: number, name: string, code: string}[];
   onView?: (item: SalesItem) => void;
 }

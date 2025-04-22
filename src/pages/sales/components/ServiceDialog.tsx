@@ -64,11 +64,11 @@ export function ServiceDialogTrigger({ saleItem, onSave }: ServiceDialogProps) {
     }
     
     try {
-      // We need to check if the service_requests table exists in the database
+      // Insert into service_requests table
       const { data: serviceData, error } = await supabase
         .from('service_requests')
         .insert({
-          asset_id: formData.saleId, // Map to existing field
+          asset_id: formData.saleId,
           title: formData.description,
           description: formData.remarks || null,
           scheduled_date: formData.date,
@@ -85,7 +85,7 @@ export function ServiceDialogTrigger({ saleItem, onSave }: ServiceDialogProps) {
       await supabase
         .from('sales')
         .update({
-          status: "serviced", // Use an existing field to track last service
+          status: "serviced",
           updated_at: new Date().toISOString()
         })
         .eq('id', formData.saleId);

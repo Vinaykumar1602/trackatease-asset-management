@@ -16,9 +16,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
 
 interface DeleteSaleDialogProps {
-  saleId: string;  // Changed from number to string
+  saleId: string;
   saleName?: string;
-  onDelete?: (id: string) => void;  // Changed from number to string
+  onDelete?: (id: string) => void;
 }
 
 export function DeleteSaleDialog({ saleId, saleName, onDelete }: DeleteSaleDialogProps) {

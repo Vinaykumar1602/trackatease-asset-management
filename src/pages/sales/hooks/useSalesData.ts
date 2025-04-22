@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { SalesItem, ServiceRecord, SaleFormData, ServiceFormData, ImportFormat } from "../types";
@@ -311,20 +312,15 @@ export function useSalesData() {
       if (!user?.id || !data.length) return;
       
       if (type === 'sales') {
+        // Transform import data to match the database schema
         const salesData = data.map(item => ({
           product_name: item.productName || 'Unknown Product',
-          serial_no: item.serialNo,
           customer_name: item.client || 'Unknown Client',
-          client_branch: item.clientBranch,
-          client_branch_code: item.clientBranchCode,
-          contact_person: item.contact || '',
           sale_date: item.saleDate || new Date().toISOString(),
-          warranty_expiry: item.warrantyExpiry,
-          amc_start_date: item.amcStartDate !== 'N/A' ? item.amcStartDate : null,
-          amc_expiry_date: item.amcExpiryDate !== 'N/A' ? item.amcExpiryDate : null,
           status: item.status || 'Active',
-          location: item.location,
-          created_by: user.id
+          created_by: user.id,
+          quantity: 1,
+          amount: 0
         }));
 
         const { data: insertedData, error } = await supabase
@@ -340,17 +336,17 @@ export function useSalesData() {
           const newSales: SalesItem[] = insertedData.map(item => ({
             id: item.id,
             productName: item.product_name,
-            serialNo: item.serial_no || `SALES-${item.id}`,
+            serialNo: item.product_name || `SALES-${item.id}`,
             client: item.customer_name,
-            clientBranch: item.client_branch || '',
-            clientBranchCode: item.client_branch_code || '',
-            contact: item.contact_person || '',
+            clientBranch: '',
+            clientBranchCode: '',
+            contact: '',
             saleDate: new Date(item.sale_date).toISOString().split('T')[0],
-            warrantyExpiry: item.warranty_expiry ? new Date(item.warranty_expiry).toISOString().split('T')[0] : '',
-            amcStartDate: item.amc_start_date ? new Date(item.amc_start_date).toISOString().split('T')[0] : 'N/A',
-            amcExpiryDate: item.amc_expiry_date ? new Date(item.amc_expiry_date).toISOString().split('T')[0] : 'N/A',
+            warrantyExpiry: new Date(new Date(item.sale_date).setFullYear(new Date(item.sale_date).getFullYear() + 1)).toISOString().split('T')[0],
+            amcStartDate: new Date(item.sale_date).toISOString().split('T')[0],
+            amcExpiryDate: new Date(new Date(item.sale_date).setFullYear(new Date(item.sale_date).getFullYear() + 1)).toISOString().split('T')[0],
             status: item.status,
-            location: item.location || '',
+            location: '',
             lastService: '',
             lastServiceNotes: ''
           }));
@@ -358,15 +354,16 @@ export function useSalesData() {
           setSalesItems(prev => [...prev, ...newSales]);
         }
       } else {
+        // Transform import data to match the service_requests table schema
         const serviceData = data.map(item => ({
-          sale_id: item.saleId,
-          service_date: item.date || new Date().toISOString(),
-          technician: item.technician || 'Unknown',
-          description: item.description || 'Service visit',
-          parts_used: item.partsUsed,
-          next_service_due: item.nextServiceDue,
-          remarks: item.remarks,
-          created_by: user.id
+          asset_id: item.saleId,
+          title: item.description || 'Service visit',
+          description: item.remarks || '',
+          scheduled_date: item.date || new Date().toISOString(),
+          priority: 'medium',
+          status: 'completed',
+          requested_by: user.id,
+          assigned_to: item.technician || 'Unknown'
         }));
 
         const { data: insertedData, error } = await supabase
@@ -381,26 +378,28 @@ export function useSalesData() {
         if (insertedData) {
           const newRecords: ServiceRecord[] = insertedData.map(record => ({
             id: record.id,
-            saleId: record.sale_id,
-            date: new Date(record.service_date).toISOString().split('T')[0],
-            technician: record.technician,
-            description: record.description,
-            partsUsed: record.parts_used || '',
-            nextServiceDue: record.next_service_due ? new Date(record.next_service_due).toISOString().split('T')[0] : '',
-            remarks: record.remarks || ''
+            saleId: record.asset_id || "",
+            date: record.scheduled_date ? new Date(record.scheduled_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            technician: record.assigned_to || "Unassigned",
+            description: record.title || "Service visit",
+            partsUsed: "",
+            nextServiceDue: "",
+            remarks: record.description || ''
           }));
 
           setServiceRecords(prev => [...prev, ...newRecords]);
           
           // Update the sales items with the latest service information
           for (const record of insertedData) {
-            await supabase
-              .from('sales')
-              .update({
-                last_service: record.service_date,
-                last_service_notes: record.description
-              })
-              .eq('id', record.sale_id);
+            if (record.asset_id) {
+              await supabase
+                .from('sales')
+                .update({
+                  status: "Serviced",
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', record.asset_id);
+            }
           }
           
           // Refresh sales data to get the updated service info

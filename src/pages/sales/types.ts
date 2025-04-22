@@ -1,5 +1,6 @@
+
 export interface SalesItem {
-  id: string;  // Changed from number to string for UUID
+  id: string;  
   productName: string;
   serialNo: string;
   client: string;
@@ -17,8 +18,8 @@ export interface SalesItem {
 }
 
 export interface ServiceRecord {
-  id: string;  // Changed from number to string for UUID
-  saleId: string;  // Changed from number to string for UUID
+  id: string;
+  saleId: string;
   date: string;
   technician: string;
   description: string;
@@ -43,7 +44,7 @@ export interface SaleFormData {
 }
 
 export interface ServiceFormData {
-  saleId: string;  // Changed from number to string for UUID
+  saleId: string;
   date: string;
   technician: string;
   description: string;

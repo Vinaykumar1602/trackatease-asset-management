@@ -94,7 +94,7 @@ export default function ServiceManagement() {
       
       if (data) {
         const formattedItems: ServiceItem[] = data.map(item => {
-          const salesData = (item.sales || {}) as SalesData;
+          const salesData = item.sales as SalesData || {};
           
           return {
             id: item.id,
@@ -489,7 +489,7 @@ export default function ServiceManagement() {
     assetId: item.id,
     scheduledDate: item.scheduledDate,
     description: item.product,
-    status: item.status.toLowerCase() as 'scheduled' | 'in progress' | 'completed' | 'cancelled'
+    status: item.status.toLowerCase() as 'scheduled' | 'in progress' | 'completed' | 'cancelled' | 'pending' | 'overdue'
   }));
 
   const filteredServiceItems = serviceItems.filter(item => {
@@ -668,7 +668,7 @@ export default function ServiceManagement() {
       ) : (
         <ServiceCalendarView 
           services={servicesForCalendar}
-          onServiceClick={handleViewService}
+          onServiceClick={(id: string) => handleViewService(id)}
         />
       )}
 

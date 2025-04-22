@@ -15,9 +15,9 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
   return "Within SLA";
 };
 
-// Define the function types to avoid TypeScript recursion issues
-type SetServiceItemsFunction = (items: ServiceItem[] | ((prev: ServiceItem[]) => ServiceItem[])) => void;
-type SetServiceHistoryFunction = (history: ServiceRecord[] | ((prev: ServiceRecord[]) => ServiceRecord[])) => void;
+// Define specific function types instead of using generic setState types
+type SetServiceItemsFunction = (items: ServiceItem[] | ((prevItems: ServiceItem[]) => ServiceItem[])) => void;
+type SetServiceHistoryFunction = (history: ServiceRecord[] | ((prevHistory: ServiceRecord[]) => ServiceRecord[])) => void;
 
 export const completeService = async (
   service: ServiceItem, 

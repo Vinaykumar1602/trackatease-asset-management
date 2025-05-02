@@ -16,8 +16,8 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
 };
 
 // Define specific function types instead of using generic setState types
-type SetServiceItemsFunction = (items: ServiceItem[] | ((prevItems: ServiceItem[]) => ServiceItem[])) => void;
-type SetServiceHistoryFunction = (history: ServiceRecord[] | ((prevHistory: ServiceRecord[]) => ServiceRecord[])) => void;
+type SetServiceItemsFunction = React.Dispatch<React.SetStateAction<ServiceItem[]>>;
+type SetServiceHistoryFunction = React.Dispatch<React.SetStateAction<ServiceRecord[]>>;
 
 export const completeService = async (
   service: ServiceItem, 

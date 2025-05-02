@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAdminTools } from "@/utils/adminUtils";
 import { Shield, CheckCircle } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function AdminSetup() {
   const [email, setEmail] = useState("");
@@ -21,24 +23,64 @@ export default function AdminSetup() {
   const [isLoading, setIsLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   
-  const { setupAdminUser } = useAdminTools();
+  const { toast } = useToast();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
+      toast({
+        title: "Error",
+        description: "Email and password are required",
+        variant: "destructive"
+      });
       return;
     }
     
     setIsLoading(true);
     
-    const success = await setupAdminUser(email, password, name);
-    
-    if (success) {
+    try {
+      // First create the user account
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name }
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (!data.user) {
+        throw new Error("Failed to create user");
+      }
+      
+      // Then promote the user to admin using our custom function
+      const { data: fnData, error: fnError } = await supabase
+        .rpc('promote_user_to_admin', { user_email: email });
+        
+      if (fnError) {
+        throw fnError;
+      }
+      
+      toast({
+        title: "Success",
+        description: fnData || "Admin account created successfully"
+      });
+      
       setIsComplete(true);
+    } catch (error: any) {
+      console.error("Error creating admin account:", error);
+      toast({
+        title: "Error",
+        description: error.message || "An error occurred while creating the admin account",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
   
   if (isComplete) {

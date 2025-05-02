@@ -8,14 +8,8 @@ import { useToast } from "@/components/ui/use-toast";
  */
 export const checkAdminStatus = async (): Promise<boolean> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-    
-    const { data, error } = await supabase
-      .rpc('has_role', { 
-        user_id: user.id, 
-        role: 'admin' 
-      });
+    // Use the server-side function to check admin status
+    const { data, error } = await supabase.rpc('is_admin');
     
     if (error) {
       console.error('Error checking admin status:', error);
@@ -67,29 +61,17 @@ export const createAdminUser = async (
       };
     }
     
-    // Set admin role for the new user
-    const { error: roleError } = await supabase
-      .from('user_roles')
-      .upsert({
-        user_id: data.user.id,
-        role: 'admin'
-      });
-      
-    if (roleError) {
+    // Use our RPC function to promote the user to admin
+    const { data: fnData, error: fnError } = await supabase.rpc(
+      'promote_user_to_admin', 
+      { user_email: email }
+    );
+    
+    if (fnError) {
       return { 
         success: false, 
-        message: `Admin role assignment failed: ${roleError.message}` 
+        message: `Admin role assignment failed: ${fnError.message}` 
       };
-    }
-    
-    // Update profile to reflect admin role
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ role: 'admin' })
-      .eq('id', data.user.id);
-    
-    if (profileError) {
-      console.error('Error updating profile role:', profileError);
     }
     
     // If we were signed in before, sign back in
@@ -102,7 +84,7 @@ export const createAdminUser = async (
     
     return { 
       success: true, 
-      message: `Admin user ${email} created successfully` 
+      message: fnData || `Admin user ${email} created successfully` 
     };
   } catch (error: any) {
     return { 

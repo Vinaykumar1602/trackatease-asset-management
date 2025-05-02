@@ -14,15 +14,15 @@ import { Label } from "@/components/ui/label";
 import { useAdminTools } from "@/utils/adminUtils";
 import { Shield, CheckCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function AdminSetup() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("Administrator");
+  const [email, setEmail] = useState("admin@example.com");
+  const [password, setPassword] = useState("Admin123!");
+  const [name, setName] = useState("System Administrator");
   const [isLoading, setIsLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   
+  const { setupAdminUser } = useAdminTools();
   const { toast } = useToast();
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,37 +40,18 @@ export default function AdminSetup() {
     setIsLoading(true);
     
     try {
-      // First create the user account
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name }
-        }
-      });
+      const success = await setupAdminUser(email, password, name);
       
-      if (error) {
-        throw error;
-      }
-      
-      if (!data.user) {
-        throw new Error("Failed to create user");
-      }
-      
-      // Then promote the user to admin using our custom function
-      const { data: fnData, error: fnError } = await supabase
-        .rpc('promote_user_to_admin', { user_email: email });
+      if (success) {
+        setIsComplete(true);
         
-      if (fnError) {
-        throw fnError;
+        // Show the credentials to the user
+        toast({
+          title: "Admin Account Created",
+          description: `Email: ${email}, Password: ${password}`,
+          duration: 10000 // Show for 10 seconds
+        });
       }
-      
-      toast({
-        title: "Success",
-        description: fnData || "Admin account created successfully"
-      });
-      
-      setIsComplete(true);
     } catch (error: any) {
       console.error("Error creating admin account:", error);
       toast({
@@ -93,7 +74,11 @@ export default function AdminSetup() {
           <CardTitle>Admin Account Created</CardTitle>
           <CardDescription>
             Your admin account has been successfully created.
-            You can now log in with your new credentials.
+            You can now log in with the following credentials:
+            <div className="mt-4 p-3 bg-muted rounded-md text-left">
+              <p><strong>Email:</strong> {email}</p>
+              <p><strong>Password:</strong> {password}</p>
+            </div>
           </CardDescription>
         </CardHeader>
         <CardFooter>
@@ -122,7 +107,7 @@ export default function AdminSetup() {
             <Label htmlFor="name">Name</Label>
             <Input
               id="name"
-              placeholder="Administrator"
+              placeholder="System Administrator"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required

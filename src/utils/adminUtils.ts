@@ -35,10 +35,7 @@ export const createAdminUser = async (
   name: string = "Administrator"
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    // Check if we're already signed in
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    
-    // Sign up new user
+    // First create the user account
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -54,7 +51,7 @@ export const createAdminUser = async (
       };
     }
     
-    if (!data.user) {
+    if (!data || !data.user) {
       return { 
         success: false, 
         message: "User creation failed for unknown reason" 
@@ -72,14 +69,6 @@ export const createAdminUser = async (
         success: false, 
         message: `Admin role assignment failed: ${fnError.message}` 
       };
-    }
-    
-    // If we were signed in before, sign back in
-    if (currentUser) {
-      await supabase.auth.setSession({
-        access_token: currentUser.id,
-        refresh_token: '',
-      });
     }
     
     return { 

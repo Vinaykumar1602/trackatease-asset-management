@@ -41,6 +41,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (!user) return;
       
+      console.log('Refreshing profile for user:', user.email);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -69,6 +71,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return false;
     
     try {
+      console.log('Checking admin role for user:', user.email);
+      
       // First check user_roles table directly
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
@@ -76,6 +80,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq('user_id', user.id)
         .eq('role', 'admin')
         .maybeSingle();
+        
+      console.log('Direct role check result:', roleData, roleError);
 
       if (!roleError && roleData?.role === 'admin') {
         console.log('Admin role found in user_roles table');
@@ -101,6 +107,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Initialize auth state
   useEffect(() => {
+    console.log('Setting up auth state listener');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
@@ -109,6 +117,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(currentSession?.user ?? null);
         
         if (currentSession?.user) {
+          console.log('Current user:', currentSession.user.email);
+          console.log('User ID:', currentSession.user.id);
+          
           // We use setTimeout to prevent deadlocks with Supabase client
           setTimeout(() => {
             refreshProfile();
@@ -123,6 +134,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       console.log('Initial session:', currentSession ? 'exists' : 'none');
+      
+      if (currentSession?.user) {
+        console.log('Current user:', currentSession.user.email);
+        console.log('User ID:', currentSession.user.id);
+      }
+      
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       

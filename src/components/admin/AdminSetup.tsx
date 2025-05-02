@@ -40,9 +40,11 @@ export default function AdminSetup() {
     setIsLoading(true);
     
     try {
+      console.log("Creating admin user:", email);
       const success = await setupAdminUser(email, password, name);
       
       if (success) {
+        console.log("Admin user created successfully");
         setIsComplete(true);
         
         // Show the credentials to the user
@@ -51,6 +53,15 @@ export default function AdminSetup() {
           description: `Email: ${email}, Password: ${password}`,
           duration: 10000 // Show for 10 seconds
         });
+        
+        // Add another toast with clear instructions
+        toast({
+          title: "Login Instructions",
+          description: "Please use these credentials to log in. You may need to log out first if you're currently logged in.",
+          duration: 15000
+        });
+      } else {
+        console.log("Failed to create admin user");
       }
     } catch (error: any) {
       console.error("Error creating admin account:", error);
@@ -81,10 +92,13 @@ export default function AdminSetup() {
             </div>
           </CardDescription>
         </CardHeader>
-        <CardFooter>
+        <CardFooter className="flex flex-col gap-4">
           <Button className="w-full" onClick={() => window.location.href = "/login"}>
             Go to Login
           </Button>
+          <div className="text-sm text-muted-foreground">
+            If you're currently logged in, please log out first by clicking on your profile and selecting "Logout".
+          </div>
         </CardFooter>
       </Card>
     );

@@ -1,7 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { ServiceItem, ServiceRecord } from "../types";
-import React from "react";
 
 export const determineSlaStatus = (scheduledDate: string, status: string): string => {
   if (!scheduledDate || status === "Completed") return "Met";
@@ -16,14 +15,14 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
   return "Within SLA";
 };
 
-// Define specific function types instead of using generic setState types
-type SetServiceItemsFunction = React.Dispatch<React.SetStateAction<ServiceItem[]>>;
-type SetServiceHistoryFunction = React.Dispatch<React.SetStateAction<ServiceRecord[]>>;
+// Define specific function types to avoid infinite type recursion
+type SetServiceItemsType = (value: React.SetStateAction<ServiceItem[]>) => void;
+type SetServiceHistoryType = (value: React.SetStateAction<ServiceRecord[]>) => void;
 
 export const completeService = async (
   service: ServiceItem, 
-  setServiceItems: SetServiceItemsFunction,
-  setServiceHistory: SetServiceHistoryFunction
+  setServiceItems: SetServiceItemsType,
+  setServiceHistory: SetServiceHistoryType
 ) => {
   try {
     const { error } = await supabase
@@ -57,7 +56,7 @@ export const completeService = async (
 
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: SetServiceHistoryFunction
+  setServiceHistory: SetServiceHistoryType
 ) => {
   try {
     let saleId = null;

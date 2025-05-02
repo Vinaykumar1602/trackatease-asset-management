@@ -54,8 +54,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (data) {
         setProfile(data as UserProfile);
-        // Check admin role after profile is loaded
-        checkAdminRole();
+        
+        // Also check admin role when profile is refreshed
+        const isUserAdmin = await checkAdminRole();
+        console.log('User admin status after profile refresh:', isUserAdmin);
+        setIsAdmin(isUserAdmin);
       }
     } catch (error) {
       console.error('Error refreshing profile:', error);
@@ -66,22 +69,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return false;
     
     try {
-      // Use RPC to call the has_role function we created in SQL
-      const { data, error } = await supabase
-        .rpc('has_role', { 
-          user_id: user.id, 
-          role: 'admin' 
-        });
+      // First check user_roles table directly
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (!roleError && roleData?.role === 'admin') {
+        console.log('Admin role found in user_roles table');
+        return true;
+      }
+        
+      // If that fails, try the RPC function
+      const { data, error } = await supabase.rpc('is_admin');
 
       if (error) {
         console.error('Error checking admin role:', error);
         return false;
       }
 
-      // Update admin status
-      setIsAdmin(!!data);
-      console.log('User admin status:', !!data);
-      return !!data;
+      const adminStatus = !!data;
+      console.log('Admin status via RPC:', adminStatus);
+      return adminStatus;
     } catch (error) {
       console.error('Error checking admin role:', error);
       return false;
@@ -150,6 +161,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setTimeout(async () => {
           const isUserAdmin = await checkAdminRole();
           console.log('User is admin:', isUserAdmin);
+          setIsAdmin(isUserAdmin);
         }, 500);
       }
 

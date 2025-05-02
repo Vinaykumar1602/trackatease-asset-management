@@ -35,7 +35,34 @@ export const createAdminUser = async (
   name: string = "Administrator"
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    // First create the user account
+    // First check if user already exists
+    const { data: existingUsers } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .limit(1);
+      
+    if (existingUsers && existingUsers.length > 0) {
+      // User exists, just promote to admin
+      const { data: fnData, error: fnError } = await supabase.rpc(
+        'promote_user_to_admin', 
+        { user_email: email }
+      );
+      
+      if (fnError) {
+        return { 
+          success: false, 
+          message: `Admin role assignment failed: ${fnError.message}` 
+        };
+      }
+      
+      return { 
+        success: true, 
+        message: fnData || `Existing user ${email} promoted to admin successfully` 
+      };
+    }
+    
+    // Create new user
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

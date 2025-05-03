@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Database } from "@/integrations/supabase/types";
@@ -83,7 +84,9 @@ export const createAdminUser = async (
       console.error('Error checking users:', userCheckError);
     }
     
-    let existingUser = existingUsers?.users?.find(u => u.email === email.toLowerCase());
+    // Make sure we're properly handling the users array
+    const usersArray = existingUsers?.users || [];
+    let existingUser = usersArray.find(u => u.email === email.toLowerCase());
     let userId: string | null = existingUser?.id || null;
     
     console.log('Existing user check:', existingUser ? 'Found' : 'Not found');

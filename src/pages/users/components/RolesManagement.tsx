@@ -27,7 +27,8 @@ import {
   X,
   Plus,
   Settings,
-  Edit
+  Edit,
+  Info as InfoIcon
 } from "lucide-react";
 import {
   Dialog,
@@ -45,7 +46,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/context/AuthContext";
 import { Textarea } from "@/components/ui/textarea";
 import { Permission } from '../types';
-import { Info } from 'lucide-react';
 
 interface RolesManagementProps {
   roles: Role[];
@@ -385,7 +385,7 @@ function RoleEditDialog({ role, open, onOpenChange, onSave, isAdd }: RoleEditDia
               <div className="mt-2 text-xs text-muted-foreground">
                 {role && ['admin'].includes(String(role.name)) ? (
                   <div className="flex items-center text-amber-600">
-                    <Info className="h-3.5 w-3.5 mr-1" />
+                    <InfoIcon className="h-3.5 w-3.5 mr-1" />
                     Admin role automatically has all permissions
                   </div>
                 ) : null}
@@ -404,27 +404,5 @@ function RoleEditDialog({ role, open, onOpenChange, onSave, isAdd }: RoleEditDia
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-// Helper component for info icon
-function Info(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 16v-4" />
-      <path d="M12 8h.01" />
-    </svg>
   );
 }

@@ -15,7 +15,8 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
   return "Within SLA";
 };
 
-// Fix the infinite recursion error by using proper type annotations
+// Fix the infinite recursion by breaking the direct reference to ServiceItem
+// and using explicit type annotations
 export const completeService = async (
   service: ServiceItem, 
   setServiceItems: React.Dispatch<React.SetStateAction<ServiceItem[]>>,
@@ -42,6 +43,7 @@ export const completeService = async (
       currentItems.map(item => item.id === service.id ? updatedService : item)
     );
     
+    // Pass the record creation to a separate function to avoid infinite type recursion
     await addServiceRecord(updatedService, setServiceHistory);
     
     return true;
@@ -51,8 +53,15 @@ export const completeService = async (
   }
 };
 
+// Break the recursion by using a more specific type for the service parameter
 export const addServiceRecord = async (
-  service: ServiceItem,
+  service: {
+    id: string;
+    scheduledDate?: string;
+    technician?: string;
+    product?: string;
+    serialNo?: string;
+  },
   setServiceHistory: React.Dispatch<React.SetStateAction<ServiceRecord[]>>
 ) => {
   try {
@@ -95,8 +104,8 @@ export const addServiceRecord = async (
         id: service.id,
         saleId: saleId,
         date: service.scheduledDate || new Date().toISOString().split('T')[0],
-        technician: service.technician,
-        description: `Service completed for ${service.product}`,
+        technician: service.technician || 'Unknown',
+        description: `Service completed for ${service.product || 'item'}`,
         partsUsed: "None",
         nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
       };

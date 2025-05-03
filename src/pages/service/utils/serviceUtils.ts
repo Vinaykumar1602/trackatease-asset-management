@@ -15,14 +15,14 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
   return "Within SLA";
 };
 
-// Define specific function types to avoid infinite type recursion
-type SetServiceItemsType = (value: React.SetStateAction<ServiceItem[]>) => void;
-type SetServiceHistoryType = (value: React.SetStateAction<ServiceRecord[]>) => void;
+// Define specific explicit types to avoid infinite recursion
+type SetServiceItemsFunction = React.Dispatch<React.SetStateAction<ServiceItem[]>>;
+type SetServiceHistoryFunction = React.Dispatch<React.SetStateAction<ServiceRecord[]>>;
 
 export const completeService = async (
   service: ServiceItem, 
-  setServiceItems: SetServiceItemsType,
-  setServiceHistory: SetServiceHistoryType
+  setServiceItems: SetServiceItemsFunction,
+  setServiceHistory: SetServiceHistoryFunction
 ) => {
   try {
     const { error } = await supabase
@@ -56,7 +56,7 @@ export const completeService = async (
 
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: SetServiceHistoryType
+  setServiceHistory: SetServiceHistoryFunction
 ) => {
   try {
     let saleId = null;

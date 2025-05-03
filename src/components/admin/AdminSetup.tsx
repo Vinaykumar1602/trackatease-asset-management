@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,8 +12,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAdminTools } from "@/utils/adminUtils";
-import { Shield, CheckCircle } from "lucide-react";
+import { Shield, CheckCircle, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminSetup() {
   const [email, setEmail] = useState("admin@example.com");
@@ -21,8 +22,10 @@ export default function AdminSetup() {
   const [name, setName] = useState("System Administrator");
   const [isLoading, setIsLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(false);
   
-  const { setupAdminUser } = useAdminTools();
+  const { setupAdminUser, checkAdminStatus } = useAdminTools();
+  const { user, isAdmin, refreshProfile } = useAuth();
   const { toast } = useToast();
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,6 +63,11 @@ export default function AdminSetup() {
           description: "Please use these credentials to log in. You may need to log out first if you're currently logged in.",
           duration: 15000
         });
+        
+        // If the user is already logged in, refresh their profile
+        if (user) {
+          await refreshProfile();
+        }
       } else {
         console.log("Failed to create admin user");
       }
@@ -74,6 +82,37 @@ export default function AdminSetup() {
       setIsLoading(false);
     }
   };
+  
+  const checkCurrentAdminStatus = async () => {
+    setIsCheckingAdmin(true);
+    try {
+      const isUserAdmin = await checkAdminStatus();
+      
+      toast({
+        title: isUserAdmin ? "Admin Access Confirmed" : "Not an Admin",
+        description: isUserAdmin 
+          ? "You have administrator access to this system." 
+          : "You do not currently have administrator privileges.",
+        duration: 5000
+      });
+      
+      // If we're checking and the user is indeed an admin, refresh their profile
+      if (isUserAdmin && user) {
+        await refreshProfile();
+      }
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+    } finally {
+      setIsCheckingAdmin(false);
+    }
+  };
+
+  useEffect(() => {
+    // Check if the current user is admin when component mounts
+    if (user) {
+      checkCurrentAdminStatus();
+    }
+  }, []);
   
   if (isComplete) {
     return (
@@ -99,6 +138,31 @@ export default function AdminSetup() {
           <div className="text-sm text-muted-foreground">
             If you're currently logged in, please log out first by clicking on your profile and selecting "Logout".
           </div>
+        </CardFooter>
+      </Card>
+    );
+  }
+
+  if (isAdmin) {
+    return (
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <CheckCircle className="h-12 w-12 text-green-500" />
+          </div>
+          <CardTitle>Admin Access Confirmed</CardTitle>
+          <CardDescription>
+            You already have administrator privileges on this system.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter>
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={() => window.location.href = "/users"}
+          >
+            Go to User Management
+          </Button>
         </CardFooter>
       </Card>
     );
@@ -150,6 +214,27 @@ export default function AdminSetup() {
               minLength={6}
             />
           </div>
+          
+          {user && (
+            <div className="mt-4 pt-4 border-t border-muted">
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="w-full"
+                onClick={checkCurrentAdminStatus}
+                disabled={isCheckingAdmin}
+              >
+                {isCheckingAdmin ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Checking...
+                  </>
+                ) : (
+                  <>Check Current Admin Status</>
+                )}
+              </Button>
+            </div>
+          )}
         </CardContent>
         <CardFooter>
           <Button type="submit" className="w-full" disabled={isLoading}>

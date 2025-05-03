@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { useToast } from "@/components/ui/use-toast";
@@ -43,6 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('Refreshing profile for user:', user.email);
       
+      // Get profile data
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -55,12 +55,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data) {
-        setProfile(data as UserProfile);
+        // Check user_roles table directly
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+          
+        const hasAdminRole = roleData?.role === 'admin';
         
-        // Also check admin role when profile is refreshed
-        const isUserAdmin = await checkAdminRole();
-        console.log('User admin status after profile refresh:', isUserAdmin);
-        setIsAdmin(isUserAdmin);
+        // Set admin status based on either the role field or the user_roles table
+        const adminStatus = hasAdminRole || data.role === 'admin';
+        console.log('User role from profile:', data.role);
+        console.log('User has admin role in user_roles:', hasAdminRole);
+        console.log('Final admin status:', adminStatus);
+        
+        // Update data with admin status if found in user_roles but not in profile
+        if (hasAdminRole && data.role !== 'admin') {
+          await supabase
+            .from('profiles')
+            .update({ role: 'admin' })
+            .eq('id', user.id);
+            
+          data.role = 'admin';
+          console.log('Updated profile role to admin');
+        }
+        
+        setProfile(data as UserProfile);
+        setIsAdmin(adminStatus);
+        console.log('Profile and admin status updated:', data.role, adminStatus);
       }
     } catch (error) {
       console.error('Error refreshing profile:', error);
@@ -85,6 +109,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (!roleError && roleData?.role === 'admin') {
         console.log('Admin role found in user_roles table');
+        
+        // Ensure profile also has admin role
+        await supabase
+          .from('profiles')
+          .update({ role: 'admin' })
+          .eq('id', user.id);
+          
+        if (profile && profile.role !== 'admin') {
+          setProfile({...profile, role: 'admin'});
+        }
+        
         return true;
       }
         
@@ -98,6 +133,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const adminStatus = !!data;
       console.log('Admin status via RPC:', adminStatus);
+      
+      // Update profile if RPC confirms admin but profile doesn't show it
+      if (adminStatus && profile && profile.role !== 'admin') {
+        await supabase
+          .from('profiles')
+          .update({ role: 'admin' })
+          .eq('id', user.id);
+          
+        setProfile({...profile, role: 'admin'});
+      }
+      
       return adminStatus;
     } catch (error) {
       console.error('Error checking admin role:', error);
@@ -121,9 +167,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.log('User ID:', currentSession.user.id);
           
           // We use setTimeout to prevent deadlocks with Supabase client
-          setTimeout(() => {
-            refreshProfile();
-          }, 0);
+          setTimeout(async () => {
+            await refreshProfile();
+            
+            // Check admin status specifically after profile is loaded
+            const adminStatus = await checkAdminRole();
+            console.log('Admin status after auth state change:', adminStatus);
+            setIsAdmin(adminStatus);
+          }, 100);
         } else {
           setProfile(null);
           setIsAdmin(false);
@@ -144,7 +195,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
-        refreshProfile();
+        setTimeout(async () => {
+          await refreshProfile();
+          
+          // Check admin status specifically after profile is loaded
+          const adminStatus = await checkAdminRole();
+          console.log('Admin status after initial session:', adminStatus);
+          setIsAdmin(adminStatus);
+        }, 100);
       }
       
       setLoading(false);
@@ -176,9 +234,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // After successful login, check if user is admin
       if (data.user) {
         setTimeout(async () => {
+          await refreshProfile();
           const isUserAdmin = await checkAdminRole();
           console.log('User is admin:', isUserAdmin);
           setIsAdmin(isUserAdmin);
+          
+          // Refresh the profile again to ensure all data is up to date
+          await refreshProfile();
         }, 500);
       }
 

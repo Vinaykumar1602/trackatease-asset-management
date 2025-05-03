@@ -8,23 +8,35 @@ import { useToast } from "@/components/ui/use-toast";
  */
 export const checkAdminStatus = async (): Promise<boolean> => {
   try {
+    // Get current user session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !session.user) {
+      console.log('No active session found');
+      return false;
+    }
+    
+    console.log('Checking admin status for user:', session.user.email);
+    
     // First check user_roles table directly for better performance
     const { data: roleData, error: roleError } = await supabase
       .from('user_roles')
       .select('role')
+      .eq('user_id', session.user.id)
       .eq('role', 'admin')
       .maybeSingle();
       
     if (!roleError && roleData?.role === 'admin') {
       console.log('Admin role found in direct check');
       return true;
+    } else {
+      console.log('No admin role found in direct check', roleError || 'No data');
     }
     
     // Use the server-side function to check admin status
     const { data, error } = await supabase.rpc('is_admin');
     
     if (error) {
-      console.error('Error checking admin status:', error);
+      console.error('Error checking admin status via RPC:', error);
       return false;
     }
     
@@ -68,11 +80,19 @@ export const createAdminUser = async (
         .limit(1);
         
       if (existingRole && existingRole.length > 0) {
+        console.log('User already has admin role');
         return { 
           success: true, 
           message: `User ${email} is already an admin` 
         };
       }
+      
+      // First, delete any existing user_roles for this user to avoid unique constraint errors
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId)
+        .eq('role', 'admin');
       
       // Promote existing user to admin
       const { error: insertError } = await supabase
@@ -95,6 +115,8 @@ export const createAdminUser = async (
         .from('profiles')
         .update({ role: 'admin' })
         .eq('id', userId);
+      
+      console.log('Successfully updated profile and added role');
       
       return { 
         success: true, 
@@ -129,7 +151,7 @@ export const createAdminUser = async (
       };
     }
     
-    console.log('New user created, adding to user_roles table');
+    console.log('New user created, adding to user_roles table with ID:', data.user.id);
     
     // Add admin role directly to user_roles table
     const { error: roleError } = await supabase
@@ -148,6 +170,14 @@ export const createAdminUser = async (
         message: `Admin user created but role assignment had an error: ${roleError.message}` 
       };
     }
+    
+    // Update the profile to ensure it has the admin role
+    await supabase
+      .from('profiles')
+      .update({ role: 'admin' })
+      .eq('id', data.user.id);
+    
+    console.log('Admin user and role created successfully');
     
     return { 
       success: true, 

@@ -26,13 +26,14 @@ export const useServiceData = (userId: string | undefined) => {
       
       if (data) {
         const formattedItems: ServiceItem[] = data.map(item => {
-          const salesData: SalesData = (item.sales as SalesData) || {};
+          // Type assertion to help TypeScript understand the structure
+          const salesData = item.sales as SalesData | null;
           
           return {
             id: item.id,
-            client: salesData.customer_name || "Unknown Client",
-            product: salesData.product_name || item.title,
-            serialNo: salesData.serial || "N/A",
+            client: salesData?.customer_name || "Unknown Client",
+            product: salesData?.product_name || item.title,
+            serialNo: salesData?.serial || "N/A",
             scheduledDate: item.scheduled_date ? new Date(item.scheduled_date).toISOString().split('T')[0] : "Not scheduled",
             technician: item.assigned_to ? item.assigned_to : "Unassigned",
             status: item.status || "Pending",

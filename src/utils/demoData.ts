@@ -1,5 +1,4 @@
-
-import { User, Role, sampleUsers, sampleRoles } from "@/pages/users/types";
+import { sampleRoles } from "@/pages/users/types";
 import { supabase } from "@/integrations/supabase/client";
 
 // Service requests sample data
@@ -527,10 +526,8 @@ export const sampleTechnicianSchedules = [
 ];
 
 // Function to get demo data for any module
-export const getDemoData = (module: 'users' | 'roles' | 'service' | 'inventory' | 'assets' | 'sales' | 'amc' | 'technicians') => {
+export const getDemoData = (module: 'roles' | 'service' | 'inventory' | 'assets' | 'sales' | 'amc' | 'technicians') => {
   switch (module) {
-    case 'users':
-      return sampleUsers;
     case 'roles':
       return sampleRoles;
     case 'service':
@@ -554,18 +551,15 @@ export const getDemoData = (module: 'users' | 'roles' | 'service' | 'inventory' 
 export const initializeDemoData = async () => {
   if (import.meta.env.DEV) {
     console.log('Initializing demo data for development environment');
-    // You could add logic here to populate local storage
-    // or make API calls to initialize data
     
-    // Example of initializing data in Supabase if empty
-    const { data: existingUsers } = await supabase.from('profiles').select('count').single();
-    const userCount = existingUsers?.count || 0;
+    // Initialize service data
+    await initializeServiceData();
     
-    if (userCount === 0) {
-      console.log('No users found, initializing with demo data');
-      // Initialize demo users
-      // This is just an example - in practice, you would need to handle auth users separately
-    }
+    // Initialize asset data
+    await initializeAssetData();
+    
+    // Initialize sales data
+    await initializeSalesData();
     
     return true;
   }
@@ -575,11 +569,16 @@ export const initializeDemoData = async () => {
 // Add initialization functions for each data type
 export const initializeServiceData = async () => {
   try {
-    const { data: existingServices } = await supabase
+    const { data: existingServices, error: countError } = await supabase
       .from('service_requests')
       .select('count')
       .single();
       
+    if (countError) {
+      console.error('Error checking service data:', countError);
+      return;
+    }
+    
     const serviceCount = existingServices?.count || 0;
     
     if (serviceCount === 0 && import.meta.env.DEV) {
@@ -598,9 +597,14 @@ export const initializeServiceData = async () => {
         completion_date: service.completionDate || null
       }));
       
-      await supabase
+      const { error: insertError } = await supabase
         .from('service_requests')
         .insert(serviceData);
+        
+      if (insertError) {
+        console.error('Error inserting service data:', insertError);
+        return;
+      }
         
       console.log('Service sample data inserted successfully');
     }
@@ -612,10 +616,15 @@ export const initializeServiceData = async () => {
 // Add initialization function for assets
 export const initializeAssetData = async () => {
   try {
-    const { data: existingAssets } = await supabase
+    const { data: existingAssets, error: countError } = await supabase
       .from('assets')
       .select('count')
       .single();
+      
+    if (countError) {
+      console.error('Error checking asset data:', countError);
+      return;
+    }
       
     const assetCount = existingAssets?.count || 0;
     
@@ -639,9 +648,14 @@ export const initializeAssetData = async () => {
         created_by: 'system'
       }));
       
-      await supabase
+      const { error: insertError } = await supabase
         .from('assets')
         .insert(assetData);
+        
+      if (insertError) {
+        console.error('Error inserting asset data:', insertError);
+        return;
+      }
         
       console.log('Asset sample data inserted successfully');
     }
@@ -653,10 +667,15 @@ export const initializeAssetData = async () => {
 // Add initialization function for sales data
 export const initializeSalesData = async () => {
   try {
-    const { data: existingSales } = await supabase
+    const { data: existingSales, error: countError } = await supabase
       .from('sales')
       .select('count')
       .single();
+      
+    if (countError) {
+      console.error('Error checking sales data:', countError);
+      return;
+    }
       
     const salesCount = existingSales?.count || 0;
     
@@ -675,9 +694,14 @@ export const initializeSalesData = async () => {
         created_by: sale.created_by
       }));
       
-      await supabase
+      const { error: insertError } = await supabase
         .from('sales')
         .insert(salesData);
+        
+      if (insertError) {
+        console.error('Error inserting sales data:', insertError);
+        return;
+      }
         
       console.log('Sales sample data inserted successfully');
     }
@@ -689,7 +713,6 @@ export const initializeSalesData = async () => {
 // Main initialization function
 export const initializeAllDemoData = async () => {
   if (import.meta.env.DEV) {
-    await initializeDemoData();
     await initializeServiceData();
     await initializeAssetData();
     await initializeSalesData();

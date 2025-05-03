@@ -15,13 +15,14 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
   return "Within SLA";
 };
 
-// Break the circular reference by separating the functions
+// Complete service function - completely rewritten to avoid circular references
 export const completeService = async (
   service: ServiceItem, 
   setServiceItems: React.Dispatch<React.SetStateAction<ServiceItem[]>>,
   setServiceHistory: React.Dispatch<React.SetStateAction<ServiceRecord[]>>
 ) => {
   try {
+    // Update the service status in the database
     const { error } = await supabase
       .from('service_requests')
       .update({
@@ -32,6 +33,7 @@ export const completeService = async (
       
     if (error) throw error;
     
+    // Update the local state with the completed service
     const updatedService = {
       ...service,
       status: "Completed",
@@ -42,17 +44,15 @@ export const completeService = async (
       currentItems.map(item => item.id === service.id ? updatedService : item)
     );
     
-    // Extract the data we need before calling createServiceRecord
-    const serviceData = {
-      id: service.id,
-      scheduledDate: service.scheduledDate,
-      technician: service.technician,
-      product: service.product,
-      serialNo: service.serialNo
-    };
-    
-    // Call createServiceRecord with the extracted data
-    await createServiceRecord(serviceData, setServiceHistory);
+    // Create a service record in a separate function call
+    await addServiceHistory(
+      service.id, 
+      service.scheduledDate || new Date().toISOString().split('T')[0], 
+      service.technician || 'Unknown', 
+      service.product || 'Unknown product',
+      service.serialNo || 'N/A',
+      setServiceHistory
+    );
     
     return true;
   } catch (error) {
@@ -61,25 +61,25 @@ export const completeService = async (
   }
 };
 
-// Create a separate function that doesn't reference the original service object
-export const createServiceRecord = async (
-  serviceData: {
-    id: string;
-    scheduledDate?: string;
-    technician?: string;
-    product?: string;
-    serialNo?: string;
-  },
+// Completely separate function for adding service history
+export const addServiceHistory = async (
+  serviceId: string,
+  serviceDate: string,
+  technicianName: string,
+  productName: string,
+  serialNumber: string,
   setServiceHistory: React.Dispatch<React.SetStateAction<ServiceRecord[]>>
 ) => {
   try {
+    // Find related sale if available
     let saleId = null;
     
-    if (serviceData.serialNo && serviceData.serialNo !== "N/A") {
+    // Try to find by serial number first
+    if (serialNumber && serialNumber !== "N/A") {
       const { data: saleData } = await supabase
         .from('sales')
         .select('id')
-        .eq('serial', serviceData.serialNo)
+        .eq('serial', serialNumber)
         .maybeSingle();
         
       if (saleData) {
@@ -87,18 +87,20 @@ export const createServiceRecord = async (
       }
     }
     
+    // If no sale found by serial, try finding by asset_id
     if (!saleId) {
       const { data: serviceDataFromDb } = await supabase
         .from('service_requests')
         .select('asset_id')
-        .eq('id', serviceData.id)
-        .single();
+        .eq('id', serviceId)
+        .maybeSingle();
         
       if (serviceDataFromDb && serviceDataFromDb.asset_id) {
         saleId = serviceDataFromDb.asset_id;
       }
     }
     
+    // If we found a related sale, update its status
     if (saleId) {
       await supabase
         .from('sales')
@@ -108,12 +110,13 @@ export const createServiceRecord = async (
         })
         .eq('id', saleId);
         
+      // Create a service record object
       const serviceRecord: ServiceRecord = {
-        id: serviceData.id,
+        id: serviceId,
         saleId: saleId,
-        date: serviceData.scheduledDate || new Date().toISOString().split('T')[0],
-        technician: serviceData.technician || 'Unknown',
-        description: `Service completed for ${serviceData.product || 'item'}`,
+        date: serviceDate,
+        technician: technicianName,
+        description: `Service completed for ${productName}`,
         partsUsed: "None",
         nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
       };

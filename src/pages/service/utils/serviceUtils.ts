@@ -15,7 +15,7 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
   return "Within SLA";
 };
 
-// Fix the infinite recursion by breaking the circular reference
+// Break the circular reference by separating the functions
 export const completeService = async (
   service: ServiceItem, 
   setServiceItems: React.Dispatch<React.SetStateAction<ServiceItem[]>>,
@@ -42,17 +42,17 @@ export const completeService = async (
       currentItems.map(item => item.id === service.id ? updatedService : item)
     );
     
-    // Use a separate function with explicitly defined parameter type
-    await createServiceRecord(
-      {
-        id: service.id,
-        scheduledDate: service.scheduledDate,
-        technician: service.technician,
-        product: service.product,
-        serialNo: service.serialNo
-      },
-      setServiceHistory
-    );
+    // Extract the data we need before calling createServiceRecord
+    const serviceData = {
+      id: service.id,
+      scheduledDate: service.scheduledDate,
+      technician: service.technician,
+      product: service.product,
+      serialNo: service.serialNo
+    };
+    
+    // Call createServiceRecord with the extracted data
+    await createServiceRecord(serviceData, setServiceHistory);
     
     return true;
   } catch (error) {
@@ -61,7 +61,7 @@ export const completeService = async (
   }
 };
 
-// Use a different name to avoid confusion and explicitly define the parameter type
+// Create a separate function that doesn't reference the original service object
 export const createServiceRecord = async (
   serviceData: {
     id: string;

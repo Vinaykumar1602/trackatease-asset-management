@@ -1,4 +1,6 @@
+
 import { User, Role, sampleUsers, sampleRoles } from "@/pages/users/types";
+import { supabase } from "@/integrations/supabase/client";
 
 // Service requests sample data
 export const sampleServiceRequests = [

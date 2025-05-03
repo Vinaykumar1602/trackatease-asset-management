@@ -9,7 +9,10 @@ import {
   Search,
   Filter,
   UserPlus,
-  ShieldCheck
+  ShieldCheck,
+  Settings,
+  UserCog,
+  RefreshCw
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,7 +26,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { AddUserDialog } from "./components/AddUserDialog";
 import { EditUserDialog } from "./components/EditUserDialog";
-import { User } from "./types";
+import { User, sampleUsers, Role, sampleRoles } from "./types";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Select,
@@ -35,9 +38,8 @@ import {
 import { DeleteUserDialog } from "./components/DeleteUserDialog";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Database } from "@/integrations/supabase/types";
-
-type AppRole = Database["public"]["Enums"]["app_role"];
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import RolesManagement from "./components/RolesManagement";
 
 export default function UsersManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -47,25 +49,19 @@ export default function UsersManagement() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("users");
+  const [roles, setRoles] = useState<Role[]>(sampleRoles);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  const { user: authUser, isAdmin } = useAuth();
+  const { user: authUser, isAdmin, checkAdminRole } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!isAdmin) {
-      toast({
-        title: "Access Denied",
-        description: "You need admin privileges to access this page.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     if (authUser) {
       fetchUsers();
     }
-  }, [authUser, isAdmin]);
+  }, [authUser]);
 
   const fetchUsers = async () => {
     try {
@@ -80,18 +76,26 @@ export default function UsersManagement() {
           )
         `);
         
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+        
+        // If there's an error fetching, use sample data in development
+        if (import.meta.env.DEV) {
+          setUsers(sampleUsers);
+          toast({
+            title: "Using Sample Data",
+            description: "Using sample user data for development",
+          });
+        } else {
+          throw profilesError;
+        }
+        return;
+      }
       
-      if (profilesData) {
+      if (profilesData && profilesData.length > 0) {
         const formattedUsers = profilesData.map(profile => {
-          // Extract role safely - ensure it's a string even if not present
-          const userRoleObj = profile.user_roles && Array.isArray(profile.user_roles) && profile.user_roles.length > 0 
-            ? profile.user_roles[0] 
-            : null;
-          
-          const userRole = userRoleObj && typeof userRoleObj === 'object' && 'role' in userRoleObj
-            ? String(userRoleObj.role)
-            : 'user';
+          // Extract role safely
+          const userRole = profile.role || 'user';
           
           return {
             id: profile.id,
@@ -106,6 +110,17 @@ export default function UsersManagement() {
         });
         
         setUsers(formattedUsers);
+      } else {
+        // If no data is returned, use sample data in development
+        if (import.meta.env.DEV) {
+          setUsers(sampleUsers);
+          toast({
+            title: "Using Sample Data",
+            description: "Using sample user data for development",
+          });
+        } else {
+          setUsers([]);
+        }
       }
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -114,19 +129,90 @@ export default function UsersManagement() {
         description: "Failed to load users",
         variant: "destructive"
       });
+      
+      // Use sample data in development
+      if (import.meta.env.DEV) {
+        setUsers(sampleUsers);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const mapToValidRole = (role: string): AppRole => {
-    const validRoles: AppRole[] = ["admin", "technician", "auditor", "inventory_manager", "user"];
-    
-    if (validRoles.includes(role.toLowerCase() as AppRole)) {
-      return role.toLowerCase() as AppRole;
+  const syncUserAdminStatus = async () => {
+    if (!isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "Only administrators can perform this action",
+        variant: "destructive"
+      });
+      return;
     }
     
-    return "user";
+    try {
+      setIsSyncing(true);
+      toast({
+        title: "Syncing",
+        description: "Syncing user roles and permissions...",
+      });
+      
+      // Check logged in user's admin status first
+      await checkAdminRole();
+      
+      // Fetch all users and update their role status
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, role');
+        
+      if (profiles) {
+        for (const profile of profiles) {
+          // Check if user has admin role in user_roles table
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', profile.id)
+            .eq('role', 'admin')
+            .maybeSingle();
+            
+          const isUserAdmin = roleData?.role === 'admin';
+          
+          // If there's a mismatch, update the profile
+          if (isUserAdmin && profile.role !== 'admin') {
+            await supabase
+              .from('profiles')
+              .update({ role: 'admin' })
+              .eq('id', profile.id);
+          }
+          
+          // If profile has admin role but no entry in user_roles, add it
+          if (profile.role === 'admin' && !isUserAdmin) {
+            await supabase
+              .from('user_roles')
+              .upsert({
+                user_id: profile.id,
+                role: 'admin'
+              });
+          }
+        }
+      }
+      
+      // Refresh user list
+      await fetchUsers();
+      
+      toast({
+        title: "Sync Complete",
+        description: "User roles and permissions have been synchronized",
+      });
+    } catch (error) {
+      console.error("Error syncing user roles:", error);
+      toast({
+        title: "Sync Failed",
+        description: "Failed to sync user roles and permissions",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleAddUser = async (userData: Omit<User, "id" | "lastLogin">) => {
@@ -142,7 +228,13 @@ export default function UsersManagement() {
       
       const { data, error } = await supabase
         .from('profiles')
-        .insert([{ email: userData.email, name: userData.name, role: userData.role, department: userData.department, id: crypto.randomUUID() }])
+        .insert([{ 
+          email: userData.email, 
+          name: userData.name, 
+          role: userData.role, 
+          department: userData.department, 
+          id: crypto.randomUUID() 
+        }])
         .select();
       
       if (error) throw error;
@@ -151,15 +243,19 @@ export default function UsersManagement() {
         const newUser: User = {
           ...userData,
           id: data[0].id,
-          lastLogin: "Never"
+          lastLogin: "Never",
+          status: 'Active'
         };
         
-        await supabase
-          .from('user_roles')
-          .upsert({
-            user_id: data[0].id,
-            role: mapToValidRole(userData.role)
-          });
+        // If user role is admin, add to user_roles table
+        if (userData.role === 'admin') {
+          await supabase
+            .from('user_roles')
+            .upsert({
+              user_id: data[0].id,
+              role: 'admin'
+            });
+        }
         
         setUsers(prev => [...prev, newUser]);
         
@@ -195,20 +291,32 @@ export default function UsersManagement() {
           name: updatedUser.name,
           email: updatedUser.email,
           department: updatedUser.department,
+          role: updatedUser.role,
           updated_at: new Date().toISOString()
         })
         .eq('id', updatedUser.id);
       
       if (profileError) throw profileError;
 
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .upsert({
-          user_id: updatedUser.id,
-          role: mapToValidRole(updatedUser.role)
-        });
-      
-      if (roleError) throw roleError;
+      // Handle user_roles based on the role change
+      if (updatedUser.role === 'admin') {
+        // Ensure user has admin role in user_roles table
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .upsert({
+            user_id: updatedUser.id,
+            role: 'admin'
+          });
+        
+        if (roleError) throw roleError;
+      } else {
+        // Remove admin role if user is not admin anymore
+        await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', updatedUser.id)
+          .eq('role', 'admin');
+      }
       
       setUsers(prev => prev.map(user => 
         user.id === updatedUser.id ? updatedUser : user
@@ -272,7 +380,7 @@ export default function UsersManagement() {
           return {
             email: values[2] || "",
             name: values[1] || "",
-            role: values[3] || "User",
+            role: values[3] || "user",
             department: values[4] || "General",
           };
         });
@@ -302,7 +410,7 @@ export default function UsersManagement() {
               email: item.email,
               role: item.role,
               department: item.department,
-              status: "Active",
+              status: "Active" as const,
               lastLogin: "Never",
               permissions: []
             }));
@@ -373,14 +481,14 @@ export default function UsersManagement() {
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.department.toLowerCase().includes(searchQuery.toLowerCase());
       
-    const matchesRole = roleFilter === "All" || user.role === roleFilter;
+    const matchesRole = roleFilter === "All" || String(user.role).toLowerCase() === roleFilter.toLowerCase();
     
     const matchesStatus = statusFilter === "All" || user.status === statusFilter;
     
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  if (!isAdmin) {
+  if (!isAdmin && !import.meta.env.DEV) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -395,34 +503,52 @@ export default function UsersManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Users & Roles</h1>
+          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
           <p className="text-muted-foreground">Manage user accounts and assign roles.</p>
         </div>
         <div className="flex items-center gap-2">
-          {isAdmin && (
-            <Button variant="outline" size="sm">
-              <ShieldCheck className="h-4 w-4 mr-2" />
-              Roles
-            </Button>
-          )}
-          {isAdmin && <AddUserDialog onSave={handleAddUser} />}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={syncUserAdminStatus}
+            disabled={isSyncing}
+          >
+            {isSyncing ? (
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Sync Roles
+          </Button>
+          <AddUserDialog onSave={handleAddUser} />
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input 
-            type="search" 
-            placeholder="Search users..." 
-            className="pl-8 w-full" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          {isAdmin && (
-            <>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="users">
+            <Users className="h-4 w-4 mr-2" />
+            Users
+          </TabsTrigger>
+          <TabsTrigger value="roles">
+            <ShieldCheck className="h-4 w-4 mr-2" />
+            Roles & Permissions
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="users" className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input 
+                type="search" 
+                placeholder="Search users..." 
+                className="pl-8 w-full" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-2 w-full md:w-auto">
               <Button variant="outline" size="sm" onClick={handleExportUsers}>
                 <Download className="h-4 w-4 mr-2" />
                 Export
@@ -438,10 +564,6 @@ export default function UsersManagement() {
                   onChange={handleImportUsers}
                 />
               </Button>
-            </>
-          )}
-          {isAdmin && (
-            <>
               <Select
                 value={roleFilter}
                 onValueChange={setRoleFilter}
@@ -451,11 +573,11 @@ export default function UsersManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">All Roles</SelectItem>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="Auditor">Auditor</SelectItem>
-                  <SelectItem value="Technician">Technician</SelectItem>
-                  <SelectItem value="Inventory Manager">Inventory Manager</SelectItem>
-                  <SelectItem value="User">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="auditor">Auditor</SelectItem>
+                  <SelectItem value="technician">Technician</SelectItem>
+                  <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
+                  <SelectItem value="user">User</SelectItem>
                 </SelectContent>
               </Select>
               <Select
@@ -471,85 +593,96 @@ export default function UsersManagement() {
                   <SelectItem value="Inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
-            </>
-          )}
-        </div>
-      </div>
+            </div>
+          </div>
 
-      <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last Login</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredUsers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
-                  No users found. {isAdmin && "Add a new user or adjust your filters."}
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredUsers.map((user) => (
-                <TableRow key={user.id} className={authUser && user.email === authUser.email ? "bg-muted/50" : ""}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{user.name}</span>
-                      {authUser && user.email === authUser.email && (
-                        <Badge variant="outline" className="ml-2">You</Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge variant={user.role === "Admin" ? "default" : "outline"}>
-                      {user.role === "Admin" && <ShieldCheck className="h-3 w-3 mr-1" />}
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{user.department}</TableCell>
-                  <TableCell>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      user.status === "Active" ? "bg-green-100 text-green-800" : 
-                      "bg-gray-100 text-gray-800"
-                    }`}>
-                      {user.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>{user.lastLogin}</TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setEditingUser(user)}
-                    >
-                      Edit
-                    </Button>
-                    {isAdmin && authUser && user.email !== authUser.email && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => setDeletingUser(user)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        Delete
-                      </Button>
-                    )}
-                  </TableCell>
+          <div className="border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last Login</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-10">
+                      <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-muted-foreground">Loading users...</p>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                      No users found. Add a new user or adjust your filters.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <TableRow key={user.id} className={authUser && user.email === authUser.email ? "bg-muted/50" : ""}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{user.name}</span>
+                          {authUser && user.email === authUser.email && (
+                            <Badge variant="outline" className="ml-2">You</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={user.role === "admin" ? "default" : "outline"}>
+                          {user.role === "admin" && <ShieldCheck className="h-3 w-3 mr-1" />}
+                          {String(user.role).charAt(0).toUpperCase() + String(user.role).slice(1)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{user.department}</TableCell>
+                      <TableCell>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          user.status === "Active" ? "bg-green-100 text-green-800" : 
+                          "bg-gray-100 text-gray-800"
+                        }`}>
+                          {user.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>{user.lastLogin}</TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setEditingUser(user)}
+                        >
+                          Edit
+                        </Button>
+                        {isAdmin && authUser && user.email !== authUser.email && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setDeletingUser(user)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            Delete
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="roles">
+          <RolesManagement roles={roles} setRoles={setRoles} />
+        </TabsContent>
+      </Tabs>
 
       {editingUser && (
         <EditUserDialog

@@ -15,11 +15,11 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
   return "Within SLA";
 };
 
-// Use explicit function parameter types to avoid infinite recursion
+// Fix for infinite recursion error by using explicit type parameters
 export const completeService = async (
   service: ServiceItem, 
-  setServiceItems: React.Dispatch<React.SetStateAction<ServiceItem[]>>,
-  setServiceHistory: React.Dispatch<React.SetStateAction<ServiceRecord[]>>
+  setServiceItems: (value: React.SetStateAction<ServiceItem[]>) => void,
+  setServiceHistory: (value: React.SetStateAction<ServiceRecord[]>) => void
 ) => {
   try {
     const { error } = await supabase
@@ -53,7 +53,7 @@ export const completeService = async (
 
 export const addServiceRecord = async (
   service: ServiceItem,
-  setServiceHistory: React.Dispatch<React.SetStateAction<ServiceRecord[]>>
+  setServiceHistory: (value: React.SetStateAction<ServiceRecord[]>) => void
 ) => {
   try {
     let saleId = null;

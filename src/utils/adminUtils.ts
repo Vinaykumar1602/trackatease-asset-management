@@ -1,6 +1,10 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { Database } from "@/integrations/supabase/types";
+
+// Define type for valid roles
+type AppRole = Database["public"]["Enums"]["app_role"];
 
 /**
  * Checks if the current user has admin privileges
@@ -8,6 +12,8 @@ import { useToast } from "@/components/ui/use-toast";
  */
 export const checkAdminStatus = async (): Promise<boolean> => {
   try {
+    console.log('Checking admin status...');
+    
     // Get current user session
     const { data: { session } } = await supabase.auth.getSession();
     if (!session || !session.user) {
@@ -24,24 +30,33 @@ export const checkAdminStatus = async (): Promise<boolean> => {
       .eq('user_id', session.user.id)
       .eq('role', 'admin')
       .maybeSingle();
-      
-    if (!roleError && roleData?.role === 'admin') {
+    
+    if (roleData?.role === 'admin') {
       console.log('Admin role found in direct check');
       return true;
     } else {
       console.log('No admin role found in direct check', roleError || 'No data');
     }
     
-    // Use the server-side function to check admin status
-    const { data, error } = await supabase.rpc('is_admin');
+    // Use the server-side function as a fallback to check admin status
+    const { data: rpcData, error: rpcError } = await supabase.rpc('is_admin');
     
-    if (error) {
-      console.error('Error checking admin status via RPC:', error);
+    if (rpcError) {
+      console.error('Error checking admin status via RPC:', rpcError);
       return false;
     }
     
-    console.log('Admin status via RPC:', !!data);
-    return !!data;
+    // Also check profile as a final fallback
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+      
+    const hasAdminRole = !!rpcData || profileData?.role === 'admin';
+    
+    console.log('Admin status:', hasAdminRole);
+    return hasAdminRole;
   } catch (error) {
     console.error('Error checking admin status:', error);
     return false;
@@ -60,15 +75,35 @@ export const createAdminUser = async (
   name: string = "Administrator"
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    // First check if user already exists in profiles
-    const { data: existingProfiles } = await supabase
-      .from('profiles')
-      .select('id, email')
-      .eq('email', email)
-      .limit(1);
+    console.log('Starting createAdminUser process for:', email);
+    
+    // First check if user already exists in auth system
+    const { data: existingUsers, error: userCheckError } = await supabase.auth.admin.listUsers();
+    
+    if (userCheckError) {
+      console.error('Error checking users:', userCheckError);
+    }
+    
+    let existingUser = existingUsers?.users.find(u => u.email === email.toLowerCase());
+    let userId: string | null = existingUser?.id || null;
+    
+    console.log('Existing user check:', existingUser ? 'Found' : 'Not found');
+    
+    // Check if user exists in profiles even if not found in auth
+    if (!userId) {
+      const { data: existingProfiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email.toLowerCase())
+        .limit(1);
+        
+      if (existingProfiles && existingProfiles.length > 0) {
+        userId = existingProfiles[0].id;
+        console.log('Found user in profiles:', userId);
+      }
+    }
       
-    if (existingProfiles && existingProfiles.length > 0) {
-      const userId = existingProfiles[0].id;
+    if (userId) {
       console.log('User exists, promoting to admin:', userId);
       
       // Check if user already has admin role
@@ -81,6 +116,13 @@ export const createAdminUser = async (
         
       if (existingRole && existingRole.length > 0) {
         console.log('User already has admin role');
+        
+        // Ensure profile is also updated
+        await supabase
+          .from('profiles')
+          .update({ role: 'admin' })
+          .eq('id', userId);
+          
         return { 
           success: true, 
           message: `User ${email} is already an admin` 
@@ -99,7 +141,7 @@ export const createAdminUser = async (
         .from('user_roles')
         .insert({
           user_id: userId,
-          role: 'admin'
+          role: 'admin' as AppRole
         });
         
       if (insertError) {
@@ -142,6 +184,7 @@ export const createAdminUser = async (
     });
     
     if (error) {
+      console.error('Error creating user:', error);
       return { 
         success: false, 
         message: `Failed to create admin user: ${error.message}` 
@@ -149,23 +192,24 @@ export const createAdminUser = async (
     }
     
     if (!data || !data.user) {
+      console.error('No user data returned from signUp');
       return { 
         success: false, 
         message: "User creation failed for unknown reason" 
       };
     }
     
-    console.log('New user created, adding to user_roles table with ID:', data.user.id);
+    console.log('New user created with ID:', data.user.id);
     
     // Wait a moment to ensure the profile is created via the trigger
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Add admin role directly to user_roles table
     const { error: roleError } = await supabase
       .from('user_roles')
       .insert({
         user_id: data.user.id,
-        role: 'admin'
+        role: 'admin' as AppRole
       });
       
     if (roleError) {

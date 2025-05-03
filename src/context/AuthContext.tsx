@@ -3,12 +3,13 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 import { Session, User } from '@supabase/supabase-js';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { AppRole } from '@/pages/users/types';
 
 export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'technician' | 'auditor' | 'inventory_manager' | 'user';
+  role: AppRole | string;
   avatar_url?: string;
   department?: string;
 }
@@ -98,7 +99,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log('Checking admin role for user:', user.email);
       
-      // First check user_roles table directly
+      // First try the RPC function (most reliable)
+      const { data: rpcData, error: rpcError } = await supabase.rpc('is_admin');
+      
+      if (!rpcError && rpcData === true) {
+        console.log('Admin role confirmed via RPC');
+        setIsAdmin(true);
+        return true;
+      }
+      
+      console.log('RPC result:', rpcData, rpcError);
+
+      // Then check user_roles table directly
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
@@ -124,30 +136,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAdmin(true);
         return true;
       }
+
+      // Try the server function directly as a last resort
+      const { data: directData, error: directError } = await supabase.rpc('get_admin_status');
+      
+      if (!directError && directData === true) {
+        console.log('Admin status confirmed via direct function call');
         
-      // If that fails, try the RPC function
-      const { data, error } = await supabase.rpc('is_admin');
-
-      if (error) {
-        console.error('Error checking admin role:', error);
-        return false;
-      }
-
-      const adminStatus = !!data;
-      console.log('Admin status via RPC:', adminStatus);
-      
-      // Update profile if RPC confirms admin but profile doesn't show it
-      if (adminStatus && profile && profile.role !== 'admin') {
-        await supabase
-          .from('profiles')
-          .update({ role: 'admin' })
-          .eq('id', user.id);
+        // Ensure both tables have consistent data
+        if (profile && profile.role !== 'admin') {
+          await supabase
+            .from('profiles')
+            .update({ role: 'admin' })
+            .eq('id', user.id);
+            
+          setProfile({...profile, role: 'admin'});
+        }
+        
+        // Also ensure the user_roles table has the entry
+        const { error: roleInsertError } = await supabase
+          .from('user_roles')
+          .upsert({ user_id: user.id, role: 'admin' });
           
-        setProfile({...profile, role: 'admin'});
+        if (roleInsertError) {
+          console.error('Error upserting admin role:', roleInsertError);
+        }
+        
+        setIsAdmin(true);
+        return true;
       }
       
-      setIsAdmin(adminStatus);
-      return adminStatus;
+      console.log('User is not an admin');
+      setIsAdmin(false);
+      return false;
     } catch (error) {
       console.error('Error checking admin role:', error);
       return false;
@@ -160,7 +181,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
         console.log('Auth state changed:', event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);

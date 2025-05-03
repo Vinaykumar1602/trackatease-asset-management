@@ -15,6 +15,7 @@ import { useAdminTools } from "@/utils/adminUtils";
 import { Shield, CheckCircle, RefreshCw, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function AdminSetup() {
   const [email, setEmail] = useState("admin@example.com");

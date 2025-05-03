@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -39,6 +40,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import RolesManagement from "./components/RolesManagement";
+import { initializeAllDemoData } from "@/utils/demoData";
 
 export default function UsersManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -51,6 +53,7 @@ export default function UsersManagement() {
   const [activeTab, setActiveTab] = useState("users");
   const [roles, setRoles] = useState<Role[]>(sampleRoles);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isInitializingData, setIsInitializingData] = useState(false);
 
   const { user: authUser, isAdmin, checkAdminRole } = useAuth();
   const { toast } = useToast();
@@ -211,6 +214,45 @@ export default function UsersManagement() {
       });
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const initializeDemoDataHandler = async () => {
+    if (!isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "Only administrators can initialize demo data",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsInitializingData(true);
+      toast({
+        title: "Initializing",
+        description: "Adding demo data to the system...",
+      });
+      
+      await initializeAllDemoData();
+      
+      toast({
+        title: "Data Initialized",
+        description: "Demo data has been added to the system successfully",
+      });
+      
+      // Refresh user list after adding demo data
+      await fetchUsers();
+      
+    } catch (error) {
+      console.error("Error initializing demo data:", error);
+      toast({
+        title: "Initialization Failed",
+        description: "Failed to add demo data to the system",
+        variant: "destructive"
+      });
+    } finally {
+      setIsInitializingData(false);
     }
   };
 
@@ -518,6 +560,19 @@ export default function UsersManagement() {
               <RefreshCw className="h-4 w-4 mr-2" />
             )}
             Sync Roles
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={initializeDemoDataHandler}
+            disabled={isInitializingData}
+          >
+            {isInitializingData ? (
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4 mr-2" />
+            )}
+            Add Demo Data
           </Button>
           <AddUserDialog onSave={handleAddUser} />
         </div>

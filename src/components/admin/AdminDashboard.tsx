@@ -1,0 +1,125 @@
+
+import { useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useInitializeData } from '@/hooks/useInitializeData';
+import { Users, Package, FileText, BarChart3, LayoutDashboard, Settings, Database, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+
+export default function AdminDashboard() {
+  const { isInitializing, hasInitialized, initializeData } = useInitializeData();
+  const navigate = useNavigate();
+  const { isAdmin } = useAuth();
+
+  const adminModules = [
+    {
+      title: "User Management",
+      description: "Manage users, roles and permissions",
+      icon: Users,
+      path: "/users-management"
+    },
+    {
+      title: "Asset Management",
+      description: "Track and manage company assets",
+      icon: Package,
+      path: "/asset-management"
+    },
+    {
+      title: "Service Management",
+      description: "Handle service requests and maintenance",
+      icon: FileText,
+      path: "/service-management"
+    },
+    {
+      title: "Reports",
+      description: "View and generate reports",
+      icon: BarChart3,
+      path: "/reports"
+    },
+    {
+      title: "Dashboard",
+      description: "Overview of system metrics",
+      icon: LayoutDashboard,
+      path: "/dashboard"
+    },
+    {
+      title: "System Settings",
+      description: "Configure application settings",
+      icon: Settings,
+      path: "/settings"
+    }
+  ];
+
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
+          <p className="text-gray-600 mt-2">You need administrator privileges to access this page.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
+        <p className="text-muted-foreground">Manage your application settings and data.</p>
+      </div>
+
+      {import.meta.env.DEV && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Demo Data
+            </CardTitle>
+            <CardDescription>
+              Initialize your application with sample data for testing and development.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-sm text-muted-foreground">
+              This will populate your database with sample users, assets, service requests, and other entities to help you explore the application.
+            </p>
+            <Button 
+              onClick={initializeData} 
+              disabled={isInitializing || hasInitialized}
+            >
+              {isInitializing ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Initializing...
+                </>
+              ) : hasInitialized ? (
+                "Data Initialized"
+              ) : (
+                "Initialize Demo Data"
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {adminModules.map((module) => (
+          <Card 
+            key={module.title} 
+            className="cursor-pointer hover:bg-accent/10 transition-colors"
+            onClick={() => navigate(module.path)}
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <module.icon className="h-5 w-5" />
+                {module.title}
+              </CardTitle>
+              <CardDescription>{module.description}</CardDescription>
+            </CardHeader>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}

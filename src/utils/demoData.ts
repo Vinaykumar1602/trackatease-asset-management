@@ -1,4 +1,3 @@
-
 import { User, Role, sampleUsers, sampleRoles } from "@/pages/users/types";
 
 // Service requests sample data
@@ -254,6 +253,48 @@ export const sampleAssets = [
     currentValue: 399.99,
     lastMaintenance: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
     nextMaintenance: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: "asset-007",
+    name: "Enterprise Firewall System",
+    category: "Network Security",
+    serialNo: "FW98765432",
+    status: "Active",
+    location: "Server Room",
+    assignedTo: "IT Security Team",
+    purchaseDate: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
+    purchaseValue: 8499.99,
+    currentValue: 7899.99,
+    lastMaintenance: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    nextMaintenance: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    amcDetails: {
+      provider: "NetSecure Solutions",
+      startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      endDate: new Date(Date.now() + 335 * 24 * 60 * 60 * 1000).toISOString(),
+      cost: 1299.99,
+      coverage: "24/7 Support, Next Day Replacement, Software Updates"
+    }
+  },
+  {
+    id: "asset-008",
+    name: "SAP Server Cluster",
+    category: "Enterprise Server",
+    serialNo: "SAP87654321",
+    status: "Active",
+    location: "Data Center",
+    assignedTo: "Enterprise Systems",
+    purchaseDate: new Date(Date.now() - 600 * 24 * 60 * 60 * 1000).toISOString(),
+    purchaseValue: 74999.99,
+    currentValue: 45000.00,
+    lastMaintenance: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    nextMaintenance: new Date(Date.now() + 75 * 24 * 60 * 60 * 1000).toISOString(),
+    amcDetails: {
+      provider: "SAP Enterprise Services",
+      startDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+      endDate: new Date(Date.now() + 305 * 24 * 60 * 60 * 1000).toISOString(),
+      cost: 12499.99,
+      coverage: "Premium Support, Hardware Replacement, System Upgrades, Quarterly Maintenance"
+    }
   }
 ];
 
@@ -321,8 +362,170 @@ export const sampleSales = [
   }
 ];
 
+// AMC Contracts sample data
+export const sampleAMCContracts = [
+  {
+    id: "amc-001",
+    assetId: "asset-007",
+    assetName: "Enterprise Firewall System",
+    provider: "NetSecure Solutions",
+    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    endDate: new Date(Date.now() + 335 * 24 * 60 * 60 * 1000).toISOString(),
+    cost: 1299.99,
+    status: "Active",
+    coverageDetails: "24/7 Support, Next Day Replacement, Software Updates",
+    paymentFrequency: "Annual",
+    contactPerson: "Mike Johnson",
+    contactEmail: "mjohnson@netsecure.com",
+    contactPhone: "+1-555-789-0123",
+    notes: "Priority support included with 4-hour response time commitment"
+  },
+  {
+    id: "amc-002",
+    assetId: "asset-008",
+    assetName: "SAP Server Cluster",
+    provider: "SAP Enterprise Services",
+    startDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+    endDate: new Date(Date.now() + 305 * 24 * 60 * 60 * 1000).toISOString(),
+    cost: 12499.99,
+    status: "Active",
+    coverageDetails: "Premium Support, Hardware Replacement, System Upgrades, Quarterly Maintenance",
+    paymentFrequency: "Quarterly",
+    contactPerson: "Sarah Williams",
+    contactEmail: "swilliams@sapservices.com",
+    contactPhone: "+1-555-456-7890",
+    notes: "Includes quarterly system health check and optimization"
+  },
+  {
+    id: "amc-003",
+    assetId: "asset-002",
+    assetName: "Dell PowerEdge Server",
+    provider: "Dell ProSupport",
+    startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+    endDate: new Date(Date.now() + 275 * 24 * 60 * 60 * 1000).toISOString(),
+    cost: 899.99,
+    status: "Active",
+    coverageDetails: "Next-Business-Day Support, Hardware Coverage, Technical Assistance",
+    paymentFrequency: "Annual",
+    contactPerson: "David Chen",
+    contactEmail: "dchen@dellsupport.com",
+    contactPhone: "+1-555-234-5678",
+    notes: "Extended warranty included with parts replacement coverage"
+  },
+  {
+    id: "amc-004",
+    assetId: "asset-003",
+    assetName: "Daikin Inverter AC",
+    provider: "Cool Climate Services",
+    startDate: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
+    endDate: new Date(Date.now() + 245 * 24 * 60 * 60 * 1000).toISOString(),
+    cost: 399.99,
+    status: "Active",
+    coverageDetails: "Bi-annual maintenance, Parts replacement, Emergency service",
+    paymentFrequency: "Annual",
+    contactPerson: "Lisa Rodriguez",
+    contactEmail: "lrodriguez@coolclimate.com",
+    contactPhone: "+1-555-987-6543",
+    notes: "Includes filter replacement and refrigerant check-up"
+  },
+  {
+    id: "amc-005",
+    assetId: "asset-006",
+    assetName: "Conference Room Projector",
+    provider: "AV Maintenance Plus",
+    startDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+    endDate: new Date(Date.now() + 320 * 24 * 60 * 60 * 1000).toISOString(),
+    cost: 249.99,
+    status: "Active",
+    coverageDetails: "Lamp replacement, Annual cleaning, Technical support",
+    paymentFrequency: "Annual",
+    contactPerson: "Robert Taylor",
+    contactEmail: "rtaylor@avmplus.com",
+    contactPhone: "+1-555-123-4567",
+    notes: "Includes one free lamp replacement per year"
+  }
+];
+
+// Technician schedule sample data
+export const sampleTechnicianSchedules = [
+  {
+    id: "tech-001",
+    name: "Alice Technician",
+    email: "alice@company.com",
+    phone: "555-123-4567",
+    specialization: "IT Hardware",
+    availability: "Weekdays",
+    schedule: [
+      {
+        date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        slots: [
+          { time: "09:00", serviceId: "sr-001", customer: "Finance Department" },
+          { time: "11:00", serviceId: null, customer: null },
+          { time: "14:00", serviceId: null, customer: null },
+          { time: "16:00", serviceId: null, customer: null }
+        ]
+      },
+      {
+        date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        slots: [
+          { time: "09:00", serviceId: null, customer: null },
+          { time: "11:00", serviceId: null, customer: null },
+          { time: "14:00", serviceId: null, customer: null },
+          { time: "16:00", serviceId: null, customer: null }
+        ]
+      }
+    ]
+  },
+  {
+    id: "tech-002",
+    name: "Bob Service",
+    email: "bob@company.com",
+    phone: "555-234-5678",
+    specialization: "Network Systems",
+    availability: "Full-time",
+    schedule: [
+      {
+        date: new Date(Date.now()).toISOString().split('T')[0],
+        slots: [
+          { time: "09:00", serviceId: "sr-002", customer: "IT Department" },
+          { time: "11:00", serviceId: null, customer: null },
+          { time: "14:00", serviceId: null, customer: null },
+          { time: "16:00", serviceId: null, customer: null }
+        ]
+      },
+      {
+        date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        slots: [
+          { time: "09:00", serviceId: null, customer: null },
+          { time: "11:00", serviceId: "sr-005", customer: "IT Department" },
+          { time: "14:00", serviceId: null, customer: null },
+          { time: "16:00", serviceId: null, customer: null }
+        ]
+      }
+    ]
+  },
+  {
+    id: "tech-003",
+    name: "Charlie Repairs",
+    email: "charlie@company.com",
+    phone: "555-345-6789",
+    specialization: "Mobile Devices",
+    availability: "Part-time",
+    schedule: [
+      {
+        date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        slots: [
+          { time: "09:00", serviceId: "sr-004", customer: "Marketing Team" },
+          { time: "11:00", serviceId: null, customer: null },
+          { time: "14:00", serviceId: null, customer: null }
+        ]
+      }
+    ]
+  }
+];
+
 // Function to get demo data for any module
-export const getDemoData = (module: 'users' | 'roles' | 'service' | 'inventory' | 'assets' | 'sales') => {
+export const getDemoData = (module: 'users' | 'roles' | 'service' | 'inventory' | 'assets' | 'sales' | 'amc' | 'technicians') => {
   switch (module) {
     case 'users':
       return sampleUsers;
@@ -336,6 +539,10 @@ export const getDemoData = (module: 'users' | 'roles' | 'service' | 'inventory' 
       return sampleAssets;
     case 'sales':
       return sampleSales;
+    case 'amc':
+      return sampleAMCContracts;
+    case 'technicians':
+      return sampleTechnicianSchedules;
     default:
       return [];
   }
@@ -347,6 +554,145 @@ export const initializeDemoData = async () => {
     console.log('Initializing demo data for development environment');
     // You could add logic here to populate local storage
     // or make API calls to initialize data
+    
+    // Example of initializing data in Supabase if empty
+    const { data: existingUsers } = await supabase.from('profiles').select('count').single();
+    const userCount = existingUsers?.count || 0;
+    
+    if (userCount === 0) {
+      console.log('No users found, initializing with demo data');
+      // Initialize demo users
+      // This is just an example - in practice, you would need to handle auth users separately
+    }
+    
+    return true;
+  }
+  return false;
+};
+
+// Add initialization functions for each data type
+export const initializeServiceData = async () => {
+  try {
+    const { data: existingServices } = await supabase
+      .from('service_requests')
+      .select('count')
+      .single();
+      
+    const serviceCount = existingServices?.count || 0;
+    
+    if (serviceCount === 0 && import.meta.env.DEV) {
+      console.log('No service records found, adding sample data');
+      
+      // Prepare service data with proper formatting for Supabase
+      const serviceData = sampleServiceRequests.map(service => ({
+        id: service.id,
+        title: service.title,
+        description: service.description,
+        status: service.status,
+        priority: service.priority,
+        scheduled_date: service.scheduledDate,
+        requested_by: service.requestedBy,
+        assigned_to: service.assignedTo,
+        completion_date: service.completionDate || null
+      }));
+      
+      await supabase
+        .from('service_requests')
+        .insert(serviceData);
+        
+      console.log('Service sample data inserted successfully');
+    }
+  } catch (error) {
+    console.error('Error initializing service data:', error);
+  }
+};
+
+// Add initialization function for assets
+export const initializeAssetData = async () => {
+  try {
+    const { data: existingAssets } = await supabase
+      .from('assets')
+      .select('count')
+      .single();
+      
+    const assetCount = existingAssets?.count || 0;
+    
+    if (assetCount === 0 && import.meta.env.DEV) {
+      console.log('No assets found, adding sample data');
+      
+      // Prepare asset data with proper formatting for Supabase
+      const assetData = sampleAssets.map(asset => ({
+        id: asset.id,
+        name: asset.name,
+        category: asset.category,
+        serial: asset.serialNo,
+        status: asset.status,
+        location: asset.location,
+        assigned_to: asset.assignedTo,
+        purchase_date: asset.purchaseDate,
+        purchase_value: asset.purchaseValue,
+        current_value: asset.currentValue,
+        last_maintenance: asset.lastMaintenance,
+        next_maintenance: asset.nextMaintenance,
+        created_by: 'system'
+      }));
+      
+      await supabase
+        .from('assets')
+        .insert(assetData);
+        
+      console.log('Asset sample data inserted successfully');
+    }
+  } catch (error) {
+    console.error('Error initializing asset data:', error);
+  }
+};
+
+// Add initialization function for sales data
+export const initializeSalesData = async () => {
+  try {
+    const { data: existingSales } = await supabase
+      .from('sales')
+      .select('count')
+      .single();
+      
+    const salesCount = existingSales?.count || 0;
+    
+    if (salesCount === 0 && import.meta.env.DEV) {
+      console.log('No sales found, adding sample data');
+      
+      // Prepare sales data with proper formatting for Supabase
+      const salesData = sampleSales.map(sale => ({
+        id: sale.id,
+        customer_name: sale.customer_name,
+        product_name: sale.product_name,
+        quantity: sale.quantity,
+        amount: sale.amount,
+        sale_date: sale.sale_date,
+        status: sale.status,
+        created_by: sale.created_by
+      }));
+      
+      await supabase
+        .from('sales')
+        .insert(salesData);
+        
+      console.log('Sales sample data inserted successfully');
+    }
+  } catch (error) {
+    console.error('Error initializing sales data:', error);
+  }
+};
+
+// Main initialization function
+export const initializeAllDemoData = async () => {
+  if (import.meta.env.DEV) {
+    await initializeDemoData();
+    await initializeServiceData();
+    await initializeAssetData();
+    await initializeSalesData();
+    
+    console.log('All demo data initialized');
     return true;
   }
   return false;

@@ -15,8 +15,7 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
   return "Within SLA";
 };
 
-// Fix the infinite recursion by breaking the direct reference to ServiceItem
-// and using explicit type annotations
+// Fix the infinite recursion by breaking the circular reference
 export const completeService = async (
   service: ServiceItem, 
   setServiceItems: React.Dispatch<React.SetStateAction<ServiceItem[]>>,
@@ -43,8 +42,17 @@ export const completeService = async (
       currentItems.map(item => item.id === service.id ? updatedService : item)
     );
     
-    // Pass the record creation to a separate function to avoid infinite type recursion
-    await addServiceRecord(updatedService, setServiceHistory);
+    // Use a separate function with explicitly defined parameter type
+    await createServiceRecord(
+      {
+        id: service.id,
+        scheduledDate: service.scheduledDate,
+        technician: service.technician,
+        product: service.product,
+        serialNo: service.serialNo
+      },
+      setServiceHistory
+    );
     
     return true;
   } catch (error) {
@@ -53,9 +61,9 @@ export const completeService = async (
   }
 };
 
-// Break the recursion by using a more specific type for the service parameter
-export const addServiceRecord = async (
-  service: {
+// Use a different name to avoid confusion and explicitly define the parameter type
+export const createServiceRecord = async (
+  serviceData: {
     id: string;
     scheduledDate?: string;
     technician?: string;
@@ -67,11 +75,11 @@ export const addServiceRecord = async (
   try {
     let saleId = null;
     
-    if (service.serialNo && service.serialNo !== "N/A") {
+    if (serviceData.serialNo && serviceData.serialNo !== "N/A") {
       const { data: saleData } = await supabase
         .from('sales')
         .select('id')
-        .eq('serial', service.serialNo)
+        .eq('serial', serviceData.serialNo)
         .maybeSingle();
         
       if (saleData) {
@@ -80,14 +88,14 @@ export const addServiceRecord = async (
     }
     
     if (!saleId) {
-      const { data: serviceData } = await supabase
+      const { data: serviceDataFromDb } = await supabase
         .from('service_requests')
         .select('asset_id')
-        .eq('id', service.id)
+        .eq('id', serviceData.id)
         .single();
         
-      if (serviceData && serviceData.asset_id) {
-        saleId = serviceData.asset_id;
+      if (serviceDataFromDb && serviceDataFromDb.asset_id) {
+        saleId = serviceDataFromDb.asset_id;
       }
     }
     
@@ -101,11 +109,11 @@ export const addServiceRecord = async (
         .eq('id', saleId);
         
       const serviceRecord: ServiceRecord = {
-        id: service.id,
+        id: serviceData.id,
         saleId: saleId,
-        date: service.scheduledDate || new Date().toISOString().split('T')[0],
-        technician: service.technician || 'Unknown',
-        description: `Service completed for ${service.product || 'item'}`,
+        date: serviceData.scheduledDate || new Date().toISOString().split('T')[0],
+        technician: serviceData.technician || 'Unknown',
+        description: `Service completed for ${serviceData.product || 'item'}`,
         partsUsed: "None",
         nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
       };

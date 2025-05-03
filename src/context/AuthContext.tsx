@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { useToast } from "@/components/ui/use-toast";
@@ -120,6 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile({...profile, role: 'admin'});
         }
         
+        setIsAdmin(true);
         return true;
       }
         
@@ -144,6 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setProfile({...profile, role: 'admin'});
       }
       
+      setIsAdmin(adminStatus);
       return adminStatus;
     } catch (error) {
       console.error('Error checking admin role:', error);
@@ -173,7 +176,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Check admin status specifically after profile is loaded
             const adminStatus = await checkAdminRole();
             console.log('Admin status after auth state change:', adminStatus);
-            setIsAdmin(adminStatus);
           }, 100);
         } else {
           setProfile(null);
@@ -201,7 +203,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Check admin status specifically after profile is loaded
           const adminStatus = await checkAdminRole();
           console.log('Admin status after initial session:', adminStatus);
-          setIsAdmin(adminStatus);
         }, 100);
       }
       
@@ -237,10 +238,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           await refreshProfile();
           const isUserAdmin = await checkAdminRole();
           console.log('User is admin:', isUserAdmin);
-          setIsAdmin(isUserAdmin);
           
           // Refresh the profile again to ensure all data is up to date
           await refreshProfile();
+          
+          if (isUserAdmin) {
+            toast({
+              title: "Admin Access",
+              description: "You've logged in with administrator privileges.",
+            });
+          }
         }, 500);
       }
 

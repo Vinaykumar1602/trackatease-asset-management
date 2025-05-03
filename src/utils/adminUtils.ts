@@ -111,12 +111,16 @@ export const createAdminUser = async (
       }
       
       // Update profile role field
-      await supabase
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ role: 'admin' })
         .eq('id', userId);
-      
-      console.log('Successfully updated profile and added role');
+        
+      if (updateError) {
+        console.error('Error updating profile:', updateError);
+      } else {
+        console.log('Successfully updated profile role to admin');
+      }
       
       return { 
         success: true, 
@@ -153,6 +157,9 @@ export const createAdminUser = async (
     
     console.log('New user created, adding to user_roles table with ID:', data.user.id);
     
+    // Wait a moment to ensure the profile is created via the trigger
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     // Add admin role directly to user_roles table
     const { error: roleError } = await supabase
       .from('user_roles')
@@ -163,21 +170,21 @@ export const createAdminUser = async (
       
     if (roleError) {
       console.error('Error adding admin role:', roleError);
-      
-      // Still return success as the user is created anyway
-      return { 
-        success: true, 
-        message: `Admin user created but role assignment had an error: ${roleError.message}` 
-      };
+    } else {
+      console.log('Admin role added successfully');
     }
     
     // Update the profile to ensure it has the admin role
-    await supabase
+    const { error: updateError } = await supabase
       .from('profiles')
       .update({ role: 'admin' })
       .eq('id', data.user.id);
-    
-    console.log('Admin user and role created successfully');
+      
+    if (updateError) {
+      console.error('Error updating profile:', updateError);
+    } else {
+      console.log('Profile updated with admin role');
+    }
     
     return { 
       success: true, 

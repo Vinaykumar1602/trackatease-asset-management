@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAdminTools } from "@/utils/adminUtils";
-import { Shield, CheckCircle, RefreshCw } from "lucide-react";
+import { Shield, CheckCircle, RefreshCw, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
 
@@ -23,6 +23,7 @@ export default function AdminSetup() {
   const [isLoading, setIsLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(false);
+  const [adminCheckResult, setAdminCheckResult] = useState<boolean | null>(null);
   
   const { setupAdminUser, checkAdminStatus } = useAdminTools();
   const { user, isAdmin, refreshProfile } = useAuth();
@@ -67,6 +68,16 @@ export default function AdminSetup() {
         // If the user is already logged in, refresh their profile
         if (user) {
           await refreshProfile();
+          
+          // Check again if the user is an admin after refreshing profile
+          const isUserAdmin = await checkAdminStatus();
+          
+          if (isUserAdmin) {
+            toast({
+              title: "Admin Access Updated",
+              description: "Your account now has administrator privileges.",
+            });
+          }
         }
       } else {
         console.log("Failed to create admin user");
@@ -85,8 +96,11 @@ export default function AdminSetup() {
   
   const checkCurrentAdminStatus = async () => {
     setIsCheckingAdmin(true);
+    setAdminCheckResult(null);
+    
     try {
       const isUserAdmin = await checkAdminStatus();
+      setAdminCheckResult(isUserAdmin);
       
       toast({
         title: isUserAdmin ? "Admin Access Confirmed" : "Not an Admin",
@@ -98,10 +112,32 @@ export default function AdminSetup() {
       
       // If we're checking and the user is indeed an admin, refresh their profile
       if (isUserAdmin && user) {
+        // Force synchronization between the database and the application state
         await refreshProfile();
+        
+        // Double check that the profile was updated with admin role
+        if (!isAdmin) {
+          // Try to fix the discrepancy by directly updating the profile
+          const { error } = await supabase
+            .from('profiles')
+            .update({ role: 'admin' })
+            .eq('id', user.id);
+            
+          if (error) {
+            console.error("Error updating profile role:", error);
+          } else {
+            await refreshProfile();
+            
+            toast({
+              title: "Profile Updated",
+              description: "Your profile has been updated with admin privileges.",
+            });
+          }
+        }
       }
     } catch (error) {
       console.error("Error checking admin status:", error);
+      setAdminCheckResult(false);
     } finally {
       setIsCheckingAdmin(false);
     }
@@ -112,7 +148,7 @@ export default function AdminSetup() {
     if (user) {
       checkCurrentAdminStatus();
     }
-  }, []);
+  }, [user]);
   
   if (isComplete) {
     return (
@@ -213,10 +249,25 @@ export default function AdminSetup() {
               required
               minLength={6}
             />
+            <p className="text-xs text-muted-foreground">Default: Admin123!</p>
           </div>
           
           {user && (
             <div className="mt-4 pt-4 border-t border-muted">
+              {adminCheckResult === false && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-yellow-500" />
+                  <p className="text-sm">You are not currently an administrator.</p>
+                </div>
+              )}
+              
+              {adminCheckResult === true && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <p className="text-sm">You have administrator privileges.</p>
+                </div>
+              )}
+              
               <Button 
                 type="button" 
                 variant="outline" 

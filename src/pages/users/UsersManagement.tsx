@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -93,7 +92,7 @@ export default function UsersManagement() {
       }
       
       if (profilesData && profilesData.length > 0) {
-        const formattedUsers = profilesData.map(profile => {
+        const formattedUsers: User[] = profilesData.map(profile => {
           // Extract role safely
           const userRole = profile.role || 'user';
           
@@ -103,7 +102,7 @@ export default function UsersManagement() {
             email: profile.email || "",
             role: userRole,
             department: profile.department || "General",
-            status: "Active",
+            status: "Active" as const,  // Explicitly type as 'Active'
             lastLogin: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : "Never",
             permissions: []
           };

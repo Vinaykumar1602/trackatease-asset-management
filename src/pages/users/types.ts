@@ -1,4 +1,3 @@
-
 import { Database } from "@/integrations/supabase/types";
 
 export type AppRole = Database["public"]["Enums"]["app_role"];
@@ -16,6 +15,7 @@ export interface User {
   profileImage?: string;
   dateJoined?: string;
   twoFactorEnabled?: boolean;
+  password?: string; // Add password field as optional
 }
 
 export interface Role {

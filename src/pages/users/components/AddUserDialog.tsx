@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,17 +23,17 @@ import { User } from "../types";
 import { useToast } from "@/components/ui/use-toast";
 
 interface AddUserDialogProps {
-  onSave: (user: Omit<User, "id" | "lastLogin">) => void;
+  onSave: (user: Omit<User, "id" | "lastLogin"> & { password: string }) => void;
 }
 
 export function AddUserDialog({ onSave }: AddUserDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState<Omit<User, "id" | "lastLogin">>({
+  const [formData, setFormData] = useState<Omit<User, "id" | "lastLogin"> & { password: string }>({
     name: "",
     email: "",
-    role: "User",
+    role: "user",
     department: "General",
-    status: "Active",
+    status: "Active" as const,
     password: "",
   });
 
@@ -88,9 +87,9 @@ export function AddUserDialog({ onSave }: AddUserDialogProps) {
     setFormData({
       name: "",
       email: "",
-      role: "User",
+      role: "user",
       department: "General",
-      status: "Active",
+      status: "Active" as const,
       password: "",
     });
   };
@@ -165,11 +164,11 @@ export function AddUserDialog({ onSave }: AddUserDialogProps) {
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Admin">Admin</SelectItem>
-                <SelectItem value="Auditor">Auditor</SelectItem>
-                <SelectItem value="Technician">Technician</SelectItem>
-                <SelectItem value="Inventory Manager">Inventory Manager</SelectItem>
-                <SelectItem value="User">User</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="auditor">Auditor</SelectItem>
+                <SelectItem value="technician">Technician</SelectItem>
+                <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
+                <SelectItem value="user">User</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -201,7 +200,7 @@ export function AddUserDialog({ onSave }: AddUserDialogProps) {
             </Label>
             <Select
               value={formData.status}
-              onValueChange={(value) => handleSelectChange("status", value)}
+              onValueChange={(value) => handleSelectChange("status", value as "Active" | "Inactive" | "Pending")}
             >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select status" />

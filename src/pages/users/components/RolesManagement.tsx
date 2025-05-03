@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +44,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/context/AuthContext";
 import { Textarea } from "@/components/ui/textarea";
+import { Permission } from '../types';
+import { Info } from 'lucide-react';
 
 interface RolesManagementProps {
   roles: Role[];
@@ -287,7 +288,7 @@ function RoleEditDialog({ role, open, onOpenChange, onSave, isAdd }: RoleEditDia
     const allPermissions = permissionModules.flatMap(m => m.permissions);
     
     // Filter to only the selected permissions
-    const permissions = allPermissions.filter(p => selectedPermissions.includes(p.id));
+    const permissions = allPermissions.filter(p => selectedPermissions.includes(p.id)) as Permission[];
     
     const updatedRole: Role = {
       id: role?.id || crypto.randomUUID(),

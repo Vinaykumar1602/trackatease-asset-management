@@ -24,13 +24,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 interface EditUserDialogProps {
   user: User;
-  onSave: (user: User) => void;
+  onSave: (user: User & { password?: string }) => void;  // Updated the type to include optional password
   onCancel: () => void;
   isAdmin?: boolean; // Added isAdmin as optional prop
 }
 
 export function EditUserDialog({ user, onSave, onCancel, isAdmin = false }: EditUserDialogProps) {
-  const [formData, setFormData] = useState<User>({ ...user });
+  const [formData, setFormData] = useState<User & { password?: string }>({ ...user });  // Updated type
   const [resetPassword, setResetPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
 

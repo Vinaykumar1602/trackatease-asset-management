@@ -43,7 +43,8 @@ export default function ServiceManagement() {
     serviceHistory,
     setServiceHistory,
     loading,
-    fetchServiceItems
+    fetchServiceItems,
+    completeService: handleServiceCompletion
   } = useServiceData(user?.id);
 
   const handleScheduleService = async (newService: Omit<ServiceItem, 'id' | 'slaStatus'>) => {
@@ -220,7 +221,8 @@ export default function ServiceManagement() {
     const service = serviceItems.find(item => item.id === id);
     if (!service) return;
     
-    const success = await completeService(service, setServiceItems, setServiceHistory);
+    // Use the handleServiceCompletion function from the hook
+    const success = await handleServiceCompletion(service);
     
     if (success) {
       toast({

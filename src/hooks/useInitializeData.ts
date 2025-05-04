@@ -16,8 +16,9 @@ export const useInitializeData = () => {
       if (!user || hasInitialized || !isAdmin) return;
       
       try {
-        const tables = ['assets', 'service_requests', 'sales', 'profiles'];
-        const counts = {};
+        // Define the tables explicitly with type safety
+        const tables = ['assets', 'service_requests', 'sales', 'profiles'] as const;
+        const counts: Record<string, number> = {};
         
         for (const table of tables) {
           const { data, error } = await supabase

@@ -26,7 +26,7 @@ export default function AdminSetup() {
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(false);
   const [adminCheckResult, setAdminCheckResult] = useState<boolean | null>(null);
   
-  const { setupAdminUser, checkAdminStatus } = useAdminTools();
+  const { createAdminUser, checkAdminStatus } = useAdminTools();
   const { user, isAdmin, refreshProfile } = useAuth();
   const { toast } = useToast();
   
@@ -46,7 +46,7 @@ export default function AdminSetup() {
     
     try {
       console.log("Creating admin user:", email);
-      const success = await setupAdminUser(email, password, name);
+      const { success, message } = await createAdminUser(email, password, name);
       
       if (success) {
         console.log("Admin user created successfully");
@@ -81,7 +81,12 @@ export default function AdminSetup() {
           }
         }
       } else {
-        console.log("Failed to create admin user");
+        console.log("Failed to create admin user:", message);
+        toast({
+          title: "Error Creating Admin",
+          description: message,
+          variant: "destructive"
+        });
       }
     } catch (error: any) {
       console.error("Error creating admin account:", error);

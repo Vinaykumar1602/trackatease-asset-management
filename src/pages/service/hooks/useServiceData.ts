@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { ServiceItem, ServiceRecord, SalesData } from "../types";
-import { determineSlaStatus } from "../utils/serviceUtils";
+import { determineSlaStatus, completeService } from "../utils/serviceUtils";
 
 export const useServiceData = (userId: string | undefined) => {
   const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
@@ -86,6 +86,20 @@ export const useServiceData = (userId: string | undefined) => {
     }
   }, [userId]);
 
+  // Function to add a record to service history
+  const addServiceHistoryRecord = useCallback((record: ServiceRecord) => {
+    setServiceHistory(prev => [...prev, record]);
+  }, []);
+
+  // Handle service completion with the new completeService function
+  const handleCompleteService = useCallback(async (service: ServiceItem) => {
+    return completeService(
+      service,
+      setServiceItems,
+      addServiceHistoryRecord
+    );
+  }, [addServiceHistoryRecord]);
+
   useEffect(() => {
     if (userId) {
       fetchServiceItems();
@@ -100,6 +114,7 @@ export const useServiceData = (userId: string | undefined) => {
     setServiceHistory,
     loading,
     fetchServiceItems,
-    fetchServiceHistory
+    fetchServiceHistory,
+    completeService: handleCompleteService
   };
 };

@@ -49,7 +49,7 @@ export const createAdminUser = async (
         return { success: false, message: `Failed to promote user: ${error.message}` };
       }
       
-      return { success: true, message: data || `User ${email} promoted to admin successfully` };
+      return { success: true, message: typeof data === 'string' ? data : `User ${email} promoted to admin successfully` };
     }
     
     // Create new admin user

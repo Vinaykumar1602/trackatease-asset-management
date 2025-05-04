@@ -44,11 +44,11 @@ export const updateServiceStatus = async (
   }
 };
 
-// Complete service function - completely redesigned to avoid circular references
+// Redesigned completeService function to avoid circular references and recursion
 export const completeService = async (
   service: ServiceItem, 
-  setServiceItems: React.Dispatch<React.SetStateAction<ServiceItem[]>>,
-  setServiceHistory: React.Dispatch<React.SetStateAction<ServiceRecord[]>>
+  updateServiceItems: (updater: (items: ServiceItem[]) => ServiceItem[]) => void,
+  addServiceHistoryRecord: (record: ServiceRecord) => void
 ) => {
   try {
     // Update the service status in the database
@@ -60,7 +60,7 @@ export const completeService = async (
     }
     
     // Update the local state with the completed service
-    setServiceItems(currentItems => 
+    updateServiceItems(currentItems => 
       currentItems.map(item => item.id === service.id ? {
         ...item,
         status: "Completed",
@@ -80,7 +80,7 @@ export const completeService = async (
     };
     
     // Add to service history
-    setServiceHistory(prevHistory => [...prevHistory, serviceRecord]);
+    addServiceHistoryRecord(serviceRecord);
     
     // Try to update related sales record if it exists
     if (service.serialNo && service.serialNo !== "N/A") {

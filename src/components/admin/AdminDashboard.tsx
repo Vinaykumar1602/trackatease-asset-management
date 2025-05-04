@@ -1,9 +1,8 @@
 
-import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useInitializeData } from '@/hooks/useInitializeData';
-import { Users, Package, FileText, BarChart3, LayoutDashboard, Settings, Database, RefreshCw } from 'lucide-react';
+import { Users, Package, FileText, BarChart3, LayoutDashboard, Settings, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
@@ -17,19 +16,19 @@ export default function AdminDashboard() {
       title: "User Management",
       description: "Manage users, roles and permissions",
       icon: Users,
-      path: "/users-management"
+      path: "/users"
     },
     {
       title: "Asset Management",
       description: "Track and manage company assets",
       icon: Package,
-      path: "/asset-management"
+      path: "/assets"
     },
     {
       title: "Service Management",
       description: "Handle service requests and maintenance",
       icon: FileText,
-      path: "/service-management"
+      path: "/service"
     },
     {
       title: "Reports",
@@ -72,18 +71,12 @@ export default function AdminDashboard() {
       {import.meta.env.DEV && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5" />
-              Demo Data
-            </CardTitle>
+            <CardTitle>Data Management</CardTitle>
             <CardDescription>
-              Initialize your application with sample data for testing and development.
+              Initialize or reset your application data for testing.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="mb-4 text-sm text-muted-foreground">
-              This will populate your database with sample users, assets, service requests, and other entities to help you explore the application.
-            </p>
             <Button 
               onClick={initializeData} 
               disabled={isInitializing || hasInitialized}
@@ -96,7 +89,7 @@ export default function AdminDashboard() {
               ) : hasInitialized ? (
                 "Data Initialized"
               ) : (
-                "Initialize Demo Data"
+                "Initialize Application Data"
               )}
             </Button>
           </CardContent>

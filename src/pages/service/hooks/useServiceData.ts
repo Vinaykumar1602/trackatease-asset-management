@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { ServiceItem, ServiceRecord, SalesData } from "../types";
@@ -11,7 +11,9 @@ export const useServiceData = (userId: string | undefined) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchServiceItems = async () => {
+  const fetchServiceItems = useCallback(async () => {
+    if (!userId) return;
+    
     try {
       setLoading(true);
       
@@ -53,9 +55,11 @@ export const useServiceData = (userId: string | undefined) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, toast]);
 
-  const fetchServiceHistory = async () => {
+  const fetchServiceHistory = useCallback(async () => {
+    if (!userId) return;
+    
     try {
       const { data, error } = await supabase
         .from('service_requests')
@@ -80,14 +84,14 @@ export const useServiceData = (userId: string | undefined) => {
     } catch (error) {
       console.error("Error fetching service history:", error);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     if (userId) {
       fetchServiceItems();
       fetchServiceHistory();
     }
-  }, [userId]);
+  }, [userId, fetchServiceItems, fetchServiceHistory]);
 
   return {
     serviceItems,

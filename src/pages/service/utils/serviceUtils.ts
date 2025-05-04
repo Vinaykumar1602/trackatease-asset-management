@@ -15,7 +15,36 @@ export const determineSlaStatus = (scheduledDate: string, status: string): strin
   return "Within SLA";
 };
 
-// Complete service function - completely rewritten to avoid circular references
+// Function to update a service request status in the database
+export const updateServiceStatus = async (
+  serviceId: string,
+  status: string,
+  completionDate?: string
+) => {
+  const updateData: { 
+    status: string;
+    completion_date?: string;
+  } = { status };
+  
+  if (completionDate) {
+    updateData.completion_date = completionDate;
+  }
+  
+  try {
+    const { error } = await supabase
+      .from('service_requests')
+      .update(updateData)
+      .eq('id', serviceId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error updating service status:", error);
+    return false;
+  }
+};
+
+// Complete service function - completely redesigned to avoid circular references
 export const completeService = async (
   service: ServiceItem, 
   setServiceItems: React.Dispatch<React.SetStateAction<ServiceItem[]>>,
@@ -23,36 +52,40 @@ export const completeService = async (
 ) => {
   try {
     // Update the service status in the database
-    const { error } = await supabase
-      .from('service_requests')
-      .update({
-        status: "Completed",
-        completion_date: new Date().toISOString()
-      })
-      .eq('id', service.id);
-      
-    if (error) throw error;
+    const completionDate = new Date().toISOString();
+    const success = await updateServiceStatus(service.id, "Completed", completionDate);
+    
+    if (!success) {
+      throw new Error("Failed to update service status");
+    }
     
     // Update the local state with the completed service
-    const updatedService = {
-      ...service,
-      status: "Completed",
-      slaStatus: "Met"
+    setServiceItems(currentItems => 
+      currentItems.map(item => item.id === service.id ? {
+        ...item,
+        status: "Completed",
+        slaStatus: "Met"
+      } : item)
+    );
+    
+    // Create a service record
+    const serviceRecord: ServiceRecord = {
+      id: service.id,
+      saleId: service.product || "",
+      date: service.scheduledDate || new Date().toISOString().split('T')[0],
+      technician: service.technician || 'Unknown',
+      description: `Service completed for ${service.product || 'Unknown product'}`,
+      partsUsed: service.serialNo || 'N/A',
+      nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
     };
     
-    setServiceItems(currentItems => 
-      currentItems.map(item => item.id === service.id ? updatedService : item)
-    );
+    // Add to service history
+    setServiceHistory(prevHistory => [...prevHistory, serviceRecord]);
     
-    // Create a service record in a separate function call
-    await addServiceHistory(
-      service.id, 
-      service.scheduledDate || new Date().toISOString().split('T')[0], 
-      service.technician || 'Unknown', 
-      service.product || 'Unknown product',
-      service.serialNo || 'N/A',
-      setServiceHistory
-    );
+    // Try to update related sales record if it exists
+    if (service.serialNo && service.serialNo !== "N/A") {
+      await updateRelatedSale(service.serialNo);
+    }
     
     return true;
   } catch (error) {
@@ -61,70 +94,27 @@ export const completeService = async (
   }
 };
 
-// Completely separate function for adding service history
-export const addServiceHistory = async (
-  serviceId: string,
-  serviceDate: string,
-  technicianName: string,
-  productName: string,
-  serialNumber: string,
-  setServiceHistory: React.Dispatch<React.SetStateAction<ServiceRecord[]>>
-) => {
+// Separated function to update related sales
+const updateRelatedSale = async (serialNumber: string) => {
   try {
-    // Find related sale if available
-    let saleId = null;
-    
-    // Try to find by serial number first
-    if (serialNumber && serialNumber !== "N/A") {
-      const { data: saleData } = await supabase
-        .from('sales')
-        .select('id')
-        .eq('serial', serialNumber)
-        .maybeSingle();
-        
-      if (saleData) {
-        saleId = saleData.id;
-      }
-    }
-    
-    // If no sale found by serial, try finding by asset_id
-    if (!saleId) {
-      const { data: serviceDataFromDb } = await supabase
-        .from('service_requests')
-        .select('asset_id')
-        .eq('id', serviceId)
-        .maybeSingle();
-        
-      if (serviceDataFromDb && serviceDataFromDb.asset_id) {
-        saleId = serviceDataFromDb.asset_id;
-      }
-    }
-    
-    // If we found a related sale, update its status
-    if (saleId) {
+    // Try to find by serial number
+    const { data: saleData } = await supabase
+      .from('sales')
+      .select('id')
+      .eq('serial', serialNumber)
+      .maybeSingle();
+      
+    if (saleData?.id) {
+      // Update the sale status
       await supabase
         .from('sales')
         .update({
           status: "Serviced",
           updated_at: new Date().toISOString()
         })
-        .eq('id', saleId);
-        
-      // Create a service record object
-      const serviceRecord: ServiceRecord = {
-        id: serviceId,
-        saleId: saleId,
-        date: serviceDate,
-        technician: technicianName,
-        description: `Service completed for ${productName}`,
-        partsUsed: "None",
-        nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
-      };
-      
-      // Update the state with the new record
-      setServiceHistory(prevHistory => [...prevHistory, serviceRecord]);
+        .eq('id', saleData.id);
     }
   } catch (error) {
-    console.error("Error adding service record:", error);
+    console.error("Error updating related sale:", error);
   }
 };

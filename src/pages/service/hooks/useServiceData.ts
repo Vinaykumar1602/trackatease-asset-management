@@ -86,19 +86,25 @@ export const useServiceData = (userId: string | undefined) => {
     }
   }, [userId]);
 
-  // Function to add a record to service history
-  const addServiceHistoryRecord = useCallback((record: ServiceRecord) => {
-    setServiceHistory(prev => [...prev, record]);
-  }, []);
-
-  // Handle service completion with the new completeService function
+  // Handle service completion with the refactored completeService function
   const handleCompleteService = useCallback(async (service: ServiceItem) => {
-    return completeService(
-      service,
-      setServiceItems,
-      addServiceHistoryRecord
-    );
-  }, [addServiceHistoryRecord]);
+    const result = await completeService(service);
+    
+    if (result.success && result.updatedService && result.serviceRecord) {
+      // Update local state with the completed service
+      setServiceItems(currentItems => 
+        currentItems.map(item => 
+          item.id === result.updatedService!.id ? result.updatedService! : item
+        )
+      );
+      
+      // Add to service history
+      setServiceHistory(prev => [...prev, result.serviceRecord!]);
+      return true;
+    }
+    
+    return false;
+  }, []);
 
   useEffect(() => {
     if (userId) {

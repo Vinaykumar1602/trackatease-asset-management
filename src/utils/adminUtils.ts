@@ -33,13 +33,19 @@ export const createAdminUser = async (
 ): Promise<{ success: boolean; message: string }> => {
   try {
     // Check if user exists
-    const { data: { users }, error: userCheckError } = await supabase.auth.admin.listUsers();
+    const { data, error: userCheckError } = await supabase.auth.admin.listUsers();
     
     if (userCheckError) {
       return { success: false, message: `Error looking up users: ${userCheckError.message}` };
     }
     
-    const existingUser = users?.find(u => u.email === email.toLowerCase());
+    // Properly type the result and check for null/undefined
+    const users = data?.users;
+    if (!users) {
+      return { success: false, message: "Unable to retrieve user list" };
+    }
+    
+    const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
     
     if (existingUser) {
       // Use RPC function to promote user to admin
@@ -49,11 +55,14 @@ export const createAdminUser = async (
         return { success: false, message: `Failed to promote user: ${error.message}` };
       }
       
-      return { success: true, message: typeof data === 'string' ? data : `User ${email} promoted to admin successfully` };
+      return { 
+        success: true, 
+        message: typeof data === 'string' ? data : `User ${email} promoted to admin successfully`
+      };
     }
     
     // Create new admin user
-    const { data, error } = await supabase.auth.signUp({
+    const { data: userData, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -68,7 +77,7 @@ export const createAdminUser = async (
       return { success: false, message: `Failed to create user: ${error.message}` };
     }
     
-    if (!data?.user?.id) {
+    if (!userData?.user?.id) {
       return { success: false, message: "User creation failed for unknown reason" };
     }
     

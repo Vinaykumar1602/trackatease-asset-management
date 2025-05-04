@@ -44,29 +44,29 @@ export const updateServiceStatus = async (
   }
 };
 
-// Redesigned completeService function to avoid circular references and recursion
+// Completely rewritten completeService function to avoid circular references
 export const completeService = async (
-  service: ServiceItem, 
-  updateServiceItems: (updater: (items: ServiceItem[]) => ServiceItem[]) => void,
-  addServiceHistoryRecord: (record: ServiceRecord) => void
-) => {
+  service: ServiceItem
+): Promise<{
+  success: boolean;
+  updatedService?: ServiceItem;
+  serviceRecord?: ServiceRecord;
+}> => {
   try {
     // Update the service status in the database
     const completionDate = new Date().toISOString();
     const success = await updateServiceStatus(service.id, "Completed", completionDate);
     
     if (!success) {
-      throw new Error("Failed to update service status");
+      return { success: false };
     }
     
-    // Update the local state with the completed service
-    updateServiceItems(currentItems => 
-      currentItems.map(item => item.id === service.id ? {
-        ...item,
-        status: "Completed",
-        slaStatus: "Met"
-      } : item)
-    );
+    // Create updated service
+    const updatedService: ServiceItem = {
+      ...service,
+      status: "Completed",
+      slaStatus: "Met"
+    };
     
     // Create a service record
     const serviceRecord: ServiceRecord = {
@@ -79,18 +79,19 @@ export const completeService = async (
       nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
     };
     
-    // Add to service history
-    addServiceHistoryRecord(serviceRecord);
-    
     // Try to update related sales record if it exists
     if (service.serialNo && service.serialNo !== "N/A") {
       await updateRelatedSale(service.serialNo);
     }
     
-    return true;
+    return {
+      success: true,
+      updatedService,
+      serviceRecord
+    };
   } catch (error) {
     console.error("Error completing service:", error);
-    return false;
+    return { success: false };
   }
 };
 

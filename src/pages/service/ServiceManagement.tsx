@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -23,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { useServiceData } from "./hooks/useServiceData";
 import { ServiceItem, CalendarService, ServiceRecord } from "./types";
-import { completeService, determineSlaStatus } from "./utils/serviceUtils";
+import { determineSlaStatus } from "./utils/serviceUtils";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 

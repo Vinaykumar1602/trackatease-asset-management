@@ -26,10 +26,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { ArrowUp, ArrowDown, ListPlus, ListMinus } from "lucide-react";
 
 interface StockOperationsProps {
-  itemId: number;
+  itemId: string; // Changed from number to string
   itemName: string;
   currentQuantity: number;
-  onStockUpdate: (id: number, quantity: number, operation: "in" | "out", notes: string) => void;
+  onStockUpdate: (id: string, quantity: number, operation: "in" | "out", notes: string) => void;
 }
 
 type Operation = "in" | "out";

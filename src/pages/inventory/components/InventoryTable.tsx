@@ -15,7 +15,7 @@ import { InventoryItem } from "./AddInventoryItemDialog";
 interface InventoryTableProps {
   items: InventoryItem[];
   onEdit: (item: InventoryItem) => void;
-  onStockUpdate: (id: number, quantity: number, operation: "in" | "out", notes: string) => void;
+  onStockUpdate: (id: string, quantity: number, operation: "in" | "out", notes: string) => void;
 }
 
 export function InventoryTable({ items, onEdit, onStockUpdate }: InventoryTableProps) {

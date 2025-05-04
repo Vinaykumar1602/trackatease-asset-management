@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export interface InventoryItem {
-  id: number;
+  id: string;  // Changed from number to string
   name: string;
   sku: string;
   category: string;
@@ -22,10 +21,10 @@ export interface InventoryItem {
   minQuantity: number;  // Updated from minLevel for consistency
   location: string;
   status: string;
-  supplier?: string;
-  unitPrice?: number;
-  lastRestock?: string;
-  updatedAt?: string;
+  supplier: string;
+  unitPrice: number;
+  lastRestock: string;
+  updatedAt: string;
 }
 
 interface AddInventoryItemDialogProps {

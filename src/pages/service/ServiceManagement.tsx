@@ -6,17 +6,29 @@ import { ServiceCalendarView } from "./components/ServiceCalendarView";
 import { ServiceTable } from "./components/ServiceTable";
 import { ServiceHeader } from "./components/ServiceHeader";
 import { ServiceFilters } from "./components/ServiceFilters";
+import { ImportExportServices } from "./components/ImportExportServices";
 import { useServiceData } from "./hooks/useServiceData";
-import { ServiceItem, CalendarService, ServiceRecord } from "./types";
-import { determineSlaStatus } from "./utils/serviceUtils";
+import { ServiceItem, CalendarService } from "./types";
+import { ServiceViewProvider, useServiceView } from "./context/ServiceViewContext";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
+// Main container component
 export default function ServiceManagement() {
+  return (
+    <ServiceViewProvider>
+      <ServiceManagementContent />
+    </ServiceViewProvider>
+  );
+}
+
+// Content component that uses the context
+function ServiceManagementContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [technicianFilter, setTechnicianFilter] = useState<string>("All");
   const [editingService, setEditingService] = useState<ServiceItem | null>(null);
-  const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
+  const { viewMode, setViewMode } = useServiceView();
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -24,143 +36,18 @@ export default function ServiceManagement() {
   
   const {
     serviceItems,
-    setServiceItems,
-    serviceHistory,
-    setServiceHistory,
     loading,
-    fetchServiceItems,
-    completeService: handleServiceCompletion
+    completeService: handleServiceCompletion,
+    scheduleService,
+    editService,
+    exportServices,
+    importServices
   } = useServiceData(user?.id);
 
-  const handleScheduleService = async (newService: Omit<ServiceItem, 'id' | 'slaStatus'>) => {
-    try {
-      if (!user?.id) return;
-      
-      let assetId = null;
-      
-      if (newService.serialNo && newService.serialNo !== "N/A") {
-        const { data: assetData } = await supabase
-          .from('sales')
-          .select('id')
-          .eq('serial', newService.serialNo)
-          .maybeSingle();
-          
-        if (assetData) {
-          assetId = assetData.id;
-        }
-      }
-      
-      const { data, error } = await supabase
-        .from('service_requests')
-        .insert({
-          title: newService.product,
-          scheduled_date: newService.scheduledDate,
-          assigned_to: newService.technician !== "Unassigned" ? newService.technician : null,
-          status: newService.status,
-          asset_id: assetId,
-          requested_by: user.id,
-          priority: "medium",
-          description: `Service for ${newService.product}`
-        })
-        .select();
-        
-      if (error) throw error;
-      
-      if (data && data[0]) {
-        const slaStatus = determineSlaStatus(newService.scheduledDate, newService.status);
-        
-        const serviceToAdd: ServiceItem = {
-          ...newService,
-          id: data[0].id,
-          slaStatus
-        };
-        
-        setServiceItems(prev => [...prev, serviceToAdd]);
-        
-        toast({
-          title: "Service Scheduled",
-          description: `Service for ${serviceToAdd.product} has been scheduled for ${serviceToAdd.scheduledDate}.`
-        });
-      }
-    } catch (error) {
-      console.error("Error scheduling service:", error);
-      toast({
-        title: "Error",
-        description: "Failed to schedule service",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  const handleEditService = async (updatedService: ServiceItem) => {
-    try {
-      let assetId = null;
-      
-      if (updatedService.serialNo && updatedService.serialNo !== "N/A") {
-        const { data: assetData } = await supabase
-          .from('sales')
-          .select('id')
-          .eq('serial', updatedService.serialNo)
-          .maybeSingle();
-          
-        if (assetData) {
-          assetId = assetData.id;
-        }
-      }
-      
-      const { error } = await supabase
-        .from('service_requests')
-        .update({
-          title: updatedService.product,
-          scheduled_date: updatedService.scheduledDate,
-          assigned_to: updatedService.technician !== "Unassigned" ? updatedService.technician : null,
-          status: updatedService.status,
-          asset_id: assetId,
-          completion_date: updatedService.status === "Completed" ? new Date().toISOString() : null
-        })
-        .eq('id', updatedService.id);
-        
-      if (error) throw error;
-      
-      setServiceItems(prev => prev.map(item => 
-        item.id === updatedService.id ? updatedService : item
-      ));
-      
-      if (updatedService.status === "Completed" && editingService?.status !== "Completed") {
-        const serviceRecord: ServiceRecord = {
-          id: updatedService.id,
-          saleId: updatedService.product || "",
-          date: updatedService.scheduledDate || new Date().toISOString().split('T')[0],
-          technician: updatedService.technician || 'Unknown',
-          description: `Service completed for ${updatedService.product || 'Unknown product'}`,
-          partsUsed: updatedService.serialNo || 'N/A',
-          nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
-        };
-        
-        setServiceHistory(prev => [...prev, serviceRecord]);
-      }
-      
-      setEditingService(null);
-      
-      toast({
-        title: "Service Updated",
-        description: `Service details for ${updatedService.product} have been updated.`
-      });
-    } catch (error) {
-      console.error("Error updating service:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update service",
-        variant: "destructive"
-      });
-    }
-  };
-  
   const handleCompleteService = async (id: string) => {
     const service = serviceItems.find(item => item.id === id);
     if (!service) return;
     
-    // Use the handleServiceCompletion function from the hook
     const success = await handleServiceCompletion(service);
     
     if (success) {
@@ -177,109 +64,35 @@ export default function ServiceManagement() {
     }
   };
   
-  const handleExportServices = () => {
-    const headers = ["ID", "Client", "Product", "Serial No", "Scheduled Date", "Technician", "Status", "SLA Status"];
-    const csvContent = [
-      headers.join(','),
-      ...filteredServiceItems.map(item => 
-        [item.id, item.client, item.product, item.serialNo, item.scheduledDate, item.technician, item.status, item.slaStatus].join(',')
-      )
-    ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "services.csv");
-    link.style.visibility = 'hidden';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast({
-      title: "Export Successful",
-      description: "Service records have been exported to CSV."
-    });
-  };
-  
   const handleImportServices = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user?.id) return;
     
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const text = event.target?.result as string;
-        const rows = text.split('\n').filter(row => row.trim());
-        const headers = rows[0].split(',');
-        
-        const importedServices = rows.slice(1).map(row => {
-          const values = row.split(',');
-          return {
-            client: values[1] || "",
-            title: values[2] || "",
-            serialNo: values[3] || "",
-            scheduledDate: values[4] || new Date().toISOString(),
-            technician: values[5] || "",
-            status: values[6] || "Scheduled"
-          };
-        });
-        
-        const validServices = importedServices.filter(service => service.title);
-        
-        if (validServices.length > 0) {
-          for (const service of validServices) {
-            let assetId = null;
-            
-            if (service.serialNo) {
-              const { data: assetData } = await supabase
-                .from('sales')
-                .select('id')
-                .eq('serial', service.serialNo)
-                .maybeSingle();
-                
-              if (assetData) {
-                assetId = assetData.id;
-              }
-            }
-            
-            await supabase
-              .from('service_requests')
-              .insert({
-                title: service.title,
-                scheduled_date: service.scheduledDate,
-                assigned_to: service.technician !== "Unassigned" ? service.technician : null,
-                status: service.status,
-                asset_id: assetId,
-                requested_by: user.id,
-                priority: "medium"
-              });
-          }
-          
-          fetchServiceItems();
-          
-          toast({
-            title: "Import Successful",
-            description: `${validServices.length} service records have been imported.`
-          });
-        }
-      } catch (error) {
-        console.error("Error importing services:", error);
-        toast({
-          title: "Import Failed",
-          description: "There was an error importing the file. Please check the format.",
-          variant: "destructive"
-        });
-      }
-    };
-    reader.readAsText(file);
+    const success = await importServices(file);
     
+    if (success) {
+      toast({
+        title: "Import Successful",
+        description: "Service records have been imported successfully."
+      });
+    } else {
+      toast({
+        title: "Import Failed",
+        description: "There was an error importing the file. Please check the format.",
+        variant: "destructive"
+      });
+    }
+    
+    // Clear the input field so the same file can be selected again
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
+
+  // Get unique technicians for the filter
+  const technicians = Array.from(
+    new Set(serviceItems.map(item => item.technician).filter(Boolean))
+  ) as string[];
   
   const filteredServiceItems = serviceItems.filter(item => {
     const matchesSearch = 
@@ -287,11 +100,12 @@ export default function ServiceManagement() {
       item.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.product.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.serialNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.technician.toLowerCase().includes(searchQuery.toLowerCase());
+      (item.technician && item.technician.toLowerCase().includes(searchQuery.toLowerCase()));
       
     const matchesStatus = statusFilter === "All" || item.status === statusFilter;
+    const matchesTechnician = technicianFilter === "All" || item.technician === technicianFilter;
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesTechnician;
   });
 
   const servicesForCalendar: CalendarService[] = serviceItems.map(item => {
@@ -329,19 +143,35 @@ export default function ServiceManagement() {
 
   return (
     <div className="space-y-6">
-      <ServiceHeader 
-        viewMode={viewMode} 
-        setViewMode={setViewMode}
-        onExport={handleExportServices}
-        onImport={handleImportServices}
-        onScheduleService={handleScheduleService}
-      />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Service Management</h1>
+          <p className="text-muted-foreground">
+            Schedule, track, and manage service requests.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <ImportExportServices
+            services={filteredServiceItems}
+            onImport={handleImportServices}
+            onExport={exportServices}
+          />
+          <ServiceHeader 
+            viewMode={viewMode} 
+            setViewMode={setViewMode}
+            onScheduleService={scheduleService}
+          />
+        </div>
+      </div>
 
       <ServiceFilters
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
+        technicianFilter={technicianFilter}
+        setTechnicianFilter={setTechnicianFilter}
+        technicians={technicians}
       />
 
       <div className="border rounded-md">
@@ -367,7 +197,7 @@ export default function ServiceManagement() {
       {editingService && (
         <ServiceEditDialog
           service={editingService}
-          onSave={handleEditService}
+          onSave={editService}
           onCancel={() => setEditingService(null)}
         />
       )}

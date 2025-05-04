@@ -77,7 +77,7 @@ export function ImportInventoryDialog({ onImportComplete }: ImportInventoryDialo
         const rows = text.split('\n').filter(row => row.trim());
         
         // Use the first row as headers
-        const headers = rows[0].split(',').map(header => header.trim());
+        const headers = rows[0].split(',').map(header => header.trim().toLowerCase());
         
         // Map the data to our inventory item format
         const importedItems = rows.slice(1).map(row => {
@@ -86,19 +86,32 @@ export function ImportInventoryDialog({ onImportComplete }: ImportInventoryDialo
           
           headers.forEach((header, index) => {
             if (index < values.length) {
-              item[header.toLowerCase()] = values[index];
+              // Convert header names to match our expected property names
+              if (header === "minlevel" || header === "minquantity" || header === "minimum") {
+                item["minQuantity"] = values[index];
+              } else if (header === "price" || header === "unitprice") {
+                item["unitPrice"] = values[index];
+              } else if (header === "itemname") {
+                item["name"] = values[index];
+              } else if (header === "itemcode" || header === "code") {
+                item["sku"] = values[index];
+              } else if (header === "vendor") {
+                item["supplier"] = values[index];
+              } else {
+                item[header] = values[index];
+              }
             }
           });
           
           return {
-            name: item.name || item.itemname || "",
-            sku: item.sku || item.itemcode || item.code || "",
+            name: item.name || "",
+            sku: item.sku || "",
             category: item.category || "Office Supplies",
             quantity: parseInt(item.quantity || "0"),
-            minQuantity: parseInt(item.minquantity || item.minlevel || item.minimum || "5"),
+            minQuantity: parseInt(item.minQuantity || "5"),
             location: item.location || "Main Office",
-            supplier: item.supplier || item.vendor || "",
-            unitPrice: parseFloat(item.unitprice || item.price || "0")
+            supplier: item.supplier || "",
+            unitPrice: parseFloat(item.unitPrice || "0")
           };
         });
         

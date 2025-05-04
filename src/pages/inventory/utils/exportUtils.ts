@@ -6,11 +6,11 @@ export function useExportInventory() {
   const { toast } = useToast();
 
   const handleExport = (items: InventoryItem[]) => {
-    const headers = ["ID", "Name", "SKU", "Category", "Quantity", "Min Level", "Location", "Status"];
+    const headers = ["ID", "Name", "SKU", "Category", "Quantity", "Min Level", "Location", "Status", "Supplier", "Unit Price"];
     const csvContent = [
       headers.join(','),
       ...items.map(item => 
-        [item.id, item.name, item.sku, item.category, item.quantity, item.minLevel, item.location, item.status].join(',')
+        [item.id, item.name, item.sku, item.category, item.quantity, item.minQuantity, item.location, item.status, item.supplier || '', item.unitPrice || ''].join(',')
       )
     ].join('\n');
     

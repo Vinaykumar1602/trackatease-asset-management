@@ -3,9 +3,10 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
+import { InventoryItem } from "../components/AddInventoryItemDialog";
 
 export function useInventoryData() {
-  const [inventoryItems, setInventoryItems] = useState([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -58,14 +59,14 @@ export function useInventoryData() {
     }
   };
 
-  const determineStatus = (quantity, minQuantity) => {
+  const determineStatus = (quantity: number, minQuantity: number): string => {
     if (quantity <= 0) return "Out of Stock";
     if (quantity <= minQuantity) return "Low Stock";
     return "In Stock";
   };
 
   // Handle both stock in and stock out operations
-  const handleStockUpdate = async (id, quantity, operation, notes) => {
+  const handleStockUpdate = async (id: number, quantity: number, operation: "in" | "out", notes: string) => {
     try {
       // Get current item
       const currentItem = inventoryItems.find(item => item.id === id);
@@ -88,7 +89,11 @@ export function useInventoryData() {
       }
       
       // Update in database
-      const updateData = {
+      const updateData: {
+        quantity: number;
+        updated_at: string;
+        last_restock?: string;
+      } = {
         quantity: newQuantity,
         updated_at: new Date().toISOString()
       };
@@ -142,7 +147,7 @@ export function useInventoryData() {
   };
   
   // Record inventory transaction
-  const recordTransaction = async (itemId, quantity, operation, notes) => {
+  const recordTransaction = async (itemId: number, quantity: number, operation: "in" | "out", notes: string) => {
     try {
       if (!user?.id) return;
       
@@ -162,7 +167,7 @@ export function useInventoryData() {
     }
   };
 
-  const handleAddItem = async (formData) => {
+  const handleAddItem = async (formData: Omit<InventoryItem, "id" | "status">) => {
     try {
       if (!user?.id) {
         toast({
@@ -193,7 +198,7 @@ export function useInventoryData() {
       }
 
       if (data && data[0]) {
-        const newItem = {
+        const newItem: InventoryItem = {
           id: data[0].id,
           name: data[0].name,
           sku: data[0].sku || '',
@@ -225,7 +230,7 @@ export function useInventoryData() {
     }
   };
 
-  const handleImportItems = async (items) => {
+  const handleImportItems = async (items: Omit<InventoryItem, "id" | "status">[]) => {
     try {
       if (!user?.id || !items.length) return;
 
@@ -233,11 +238,11 @@ export function useInventoryData() {
         name: item.name,
         sku: item.sku || null,
         category: item.category || null,
-        quantity: parseInt(item.quantity) || 0,
-        min_quantity: parseInt(item.minQuantity) || 0,
+        quantity: parseInt(item.quantity.toString()) || 0,
+        min_quantity: parseInt(item.minQuantity.toString()) || 0,
         location: item.location || null,
         supplier: item.supplier || null,
-        unit_price: parseFloat(item.unitPrice) || 0,
+        unit_price: parseFloat(item.unitPrice?.toString() || "0") || 0,
         created_by: user.id
       }));
 
@@ -251,7 +256,7 @@ export function useInventoryData() {
       }
 
       if (data) {
-        const newItems = data.map(item => ({
+        const newItems = data.map((item: any) => ({
           id: item.id,
           name: item.name,
           sku: item.sku || '',
@@ -283,7 +288,7 @@ export function useInventoryData() {
     }
   };
 
-  const handleEditItem = async (updatedItem) => {
+  const handleEditItem = async (updatedItem: InventoryItem) => {
     try {
       const { error } = await supabase
         .from('inventory')

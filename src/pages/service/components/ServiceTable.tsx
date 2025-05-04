@@ -1,8 +1,15 @@
 
 import { ServiceItem } from "../types";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Wrench, AlertCircle, CheckCircle } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ServiceActions } from "./ServiceActions";
+import { Badge } from "@/components/ui/badge";
 
 interface ServiceTableProps {
   services: ServiceItem[];
@@ -10,17 +17,7 @@ interface ServiceTableProps {
   onComplete: (id: string) => void;
 }
 
-export function ServiceTable({ services, onEdit, onComplete }: ServiceTableProps) {
-  if (services.length === 0) {
-    return (
-      <TableRow>
-        <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
-          No service records found. Schedule a new service or adjust your filters.
-        </TableCell>
-      </TableRow>
-    );
-  }
-
+export const ServiceTable = ({ services, onEdit, onComplete }: ServiceTableProps) => {
   return (
     <Table>
       <TableHeader>
@@ -31,65 +28,59 @@ export function ServiceTable({ services, onEdit, onComplete }: ServiceTableProps
           <TableHead>Scheduled Date</TableHead>
           <TableHead>Technician</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead>SLA Status</TableHead>
+          <TableHead>SLA</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {services.map((item) => (
-          <TableRow key={item.id}>
-            <TableCell>{item.client}</TableCell>
-            <TableCell>
-              <div className="flex items-center gap-2">
-                <Wrench className="h-4 w-4 text-muted-foreground" />
-                <span>{item.product}</span>
-              </div>
-            </TableCell>
-            <TableCell>{item.serialNo}</TableCell>
-            <TableCell>{item.scheduledDate}</TableCell>
-            <TableCell>{item.technician}</TableCell>
-            <TableCell>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                item.status === "Scheduled" ? "bg-blue-100 text-blue-800" :
-                item.status === "Pending" ? "bg-yellow-100 text-yellow-800" :
-                item.status === "Completed" ? "bg-green-100 text-green-800" :
-                "bg-red-100 text-red-800"
-              }`}>
-                {item.status}
-              </span>
-            </TableCell>
-            <TableCell>
-              <span className="flex items-center gap-1">
-                {item.slaStatus === "Met" || item.slaStatus === "Within SLA" ? (
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                ) : (
-                  <AlertCircle className="h-3 w-3 text-red-500" />
-                )}
-                <span className="text-sm">{item.slaStatus}</span>
-              </span>
-            </TableCell>
-            <TableCell className="text-right">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => onEdit(item)}
-              >
-                Edit
-              </Button>
-              {item.status !== "Completed" && (
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => onComplete(item.id)}
-                >
-                  <Check className="h-4 w-4 mr-1" />
-                  Complete
-                </Button>
-              )}
+        {services.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={8} className="text-center h-32 text-muted-foreground">
+              No services found matching your criteria.
             </TableCell>
           </TableRow>
-        ))}
+        ) : (
+          services.map((service) => (
+            <TableRow key={service.id}>
+              <TableCell>{service.client}</TableCell>
+              <TableCell>{service.product}</TableCell>
+              <TableCell>{service.serialNo || "N/A"}</TableCell>
+              <TableCell>{service.scheduledDate || "Not scheduled"}</TableCell>
+              <TableCell>{service.technician || "Unassigned"}</TableCell>
+              <TableCell>
+                <Badge 
+                  variant="outline"
+                  className={
+                    service.status === "Completed" ? "bg-green-100 text-green-800 hover:bg-green-100" :
+                    service.status === "Scheduled" ? "bg-blue-100 text-blue-800 hover:bg-blue-100" :
+                    service.status === "Overdue" ? "bg-red-100 text-red-800 hover:bg-red-100" :
+                    service.status === "In Progress" ? "bg-amber-100 text-amber-800 hover:bg-amber-100" :
+                    "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                  }
+                >
+                  {service.status}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  service.slaStatus === "Met" ? "bg-green-100 text-green-800" : 
+                  service.slaStatus === "SLA Violated" ? "bg-red-100 text-red-800" : 
+                  "bg-blue-100 text-blue-800"
+                }`}>
+                  {service.slaStatus}
+                </span>
+              </TableCell>
+              <TableCell className="text-right">
+                <ServiceActions 
+                  service={service} 
+                  onEdit={onEdit} 
+                  onComplete={onComplete} 
+                />
+              </TableCell>
+            </TableRow>
+          ))
+        )}
       </TableBody>
     </Table>
   );
-}
+};

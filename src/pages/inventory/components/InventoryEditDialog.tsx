@@ -10,19 +10,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-interface InventoryItem {
-  id: number;
-  name: string;
-  sku: string;
-  category: string;
-  quantity: number;
-  minLevel: number;
-  location: string;
-  status: string;
-}
+import { InventoryItem } from "./AddInventoryItemDialog";
 
 interface InventoryEditDialogProps {
   item: InventoryItem | null;
@@ -39,14 +29,19 @@ export function InventoryEditDialog({
   categories,
   locations 
 }: InventoryEditDialogProps) {
-  const [editedItem, setEditedItem] = useState<InventoryItem | null>(item);
+  const [editedItem, setEditedItem] = useState<InventoryItem | null>(null);
 
-  if (!editedItem) return null;
+  useEffect(() => {
+    if (item) {
+      setEditedItem(item);
+    }
+  }, [item]);
+
+  if (!item || !editedItem) return null;
 
   const handleSave = () => {
     if (editedItem) {
       onSave(editedItem);
-      onClose();
     }
   };
 
@@ -112,12 +107,12 @@ export function InventoryEditDialog({
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="minLevel" className="text-right">Min Level</Label>
+            <Label htmlFor="minQuantity" className="text-right">Min Level</Label>
             <Input
-              id="minLevel"
+              id="minQuantity"
               type="number"
-              value={editedItem.minLevel}
-              onChange={(e) => setEditedItem({ ...editedItem, minLevel: parseInt(e.target.value) || 0 })}
+              value={editedItem.minQuantity}
+              onChange={(e) => setEditedItem({ ...editedItem, minQuantity: parseInt(e.target.value) || 0 })}
               className="col-span-3"
             />
           </div>
@@ -139,6 +134,28 @@ export function InventoryEditDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="supplier" className="text-right">Supplier</Label>
+            <Input
+              id="supplier"
+              value={editedItem.supplier || ''}
+              onChange={(e) => setEditedItem({ ...editedItem, supplier: e.target.value })}
+              className="col-span-3"
+            />
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="unitPrice" className="text-right">Unit Price</Label>
+            <Input
+              id="unitPrice"
+              type="number"
+              step="0.01"
+              value={editedItem.unitPrice || 0}
+              onChange={(e) => setEditedItem({ ...editedItem, unitPrice: parseFloat(e.target.value) || 0 })}
+              className="col-span-3"
+            />
           </div>
         </div>
 

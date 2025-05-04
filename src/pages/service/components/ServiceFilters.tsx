@@ -15,13 +15,19 @@ interface ServiceFiltersProps {
   setSearchQuery: (query: string) => void;
   statusFilter: string;
   setStatusFilter: (status: string) => void;
+  technicianFilter?: string;
+  setTechnicianFilter?: (technician: string) => void;
+  technicians?: string[];
 }
 
 export const ServiceFilters = ({
   searchQuery,
   setSearchQuery,
   statusFilter,
-  setStatusFilter
+  setStatusFilter,
+  technicianFilter,
+  setTechnicianFilter,
+  technicians
 }: ServiceFiltersProps) => {
   return (
     <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -51,6 +57,23 @@ export const ServiceFilters = ({
             <SelectItem value="Overdue">Overdue</SelectItem>
           </SelectContent>
         </Select>
+
+        {technicianFilter !== undefined && setTechnicianFilter && technicians && (
+          <Select
+            value={technicianFilter}
+            onValueChange={setTechnicianFilter}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Technician" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Technicians</SelectItem>
+              {technicians.map(tech => (
+                <SelectItem key={tech} value={tech}>{tech}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
     </div>
   );

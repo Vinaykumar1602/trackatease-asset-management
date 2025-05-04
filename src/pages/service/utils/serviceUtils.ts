@@ -44,7 +44,7 @@ export const updateServiceStatus = async (
   }
 };
 
-// Completely rewritten completeService function to avoid circular references
+// Fixed completeService function to avoid infinite recursion
 export const completeService = async (
   service: ServiceItem
 ): Promise<{

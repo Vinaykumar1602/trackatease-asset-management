@@ -42,11 +42,11 @@ export const createAdminUser = async (
     // Properly type the result and check for null/undefined
     const users = data?.users || [];
     
-    const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    const existingUser = users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
     
     if (existingUser) {
       // Use RPC function to promote user to admin
-      const { data, error } = await supabase.rpc('promote_user_to_admin', { user_email: email });
+      const { data: promotionResult, error } = await supabase.rpc('promote_user_to_admin', { user_email: email });
       
       if (error) {
         return { success: false, message: `Failed to promote user: ${error.message}` };
@@ -54,7 +54,7 @@ export const createAdminUser = async (
       
       return { 
         success: true, 
-        message: typeof data === 'string' ? data : `User ${email} promoted to admin successfully`
+        message: typeof promotionResult === 'string' ? promotionResult : `User ${email} promoted to admin successfully`
       };
     }
     

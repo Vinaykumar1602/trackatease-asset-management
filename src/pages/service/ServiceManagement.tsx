@@ -6,12 +6,11 @@ import { ServiceCalendarView } from "./components/ServiceCalendarView";
 import { ServiceTable } from "./components/ServiceTable";
 import { ServiceHeader } from "./components/ServiceHeader";
 import { ServiceFilters } from "./components/ServiceFilters";
-import { ImportExportServices } from "./components/ImportExportServices";
-import { useServiceData } from "./hooks/useServiceData";
 import { ServiceItem, CalendarService } from "./types";
 import { ServiceViewProvider, useServiceView } from "./context/ServiceViewContext";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useServiceData } from "./hooks/useServiceData";
 
 // Main container component
 export default function ServiceManagement() {
@@ -150,18 +149,13 @@ function ServiceManagementContent() {
             Schedule, track, and manage service requests.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <ImportExportServices
-            services={filteredServiceItems}
-            onImport={handleImportServices}
-            onExport={exportServices}
-          />
-          <ServiceHeader 
-            viewMode={viewMode} 
-            setViewMode={setViewMode}
-            onScheduleService={scheduleService}
-          />
-        </div>
+        <ServiceHeader 
+          viewMode={viewMode} 
+          setViewMode={setViewMode}
+          onScheduleService={scheduleService}
+          onExport={exportServices}
+          onImport={handleImportServices}
+        />
       </div>
 
       <ServiceFilters

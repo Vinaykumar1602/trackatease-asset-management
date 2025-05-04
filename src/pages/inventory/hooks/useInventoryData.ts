@@ -30,7 +30,7 @@ export function useInventoryData() {
       }
 
       if (data) {
-        const formattedItems = data.map(item => ({
+        const formattedItems: InventoryItem[] = data.map(item => ({
           id: item.id,
           name: item.name,
           sku: item.sku || '',
@@ -66,7 +66,7 @@ export function useInventoryData() {
   };
 
   // Handle both stock in and stock out operations
-  const handleStockUpdate = async (id: number, quantity: number, operation: "in" | "out", notes: string) => {
+  const handleStockUpdate = async (id: string, quantity: number, operation: "in" | "out", notes: string) => {
     try {
       // Get current item
       const currentItem = inventoryItems.find(item => item.id === id);
@@ -147,7 +147,7 @@ export function useInventoryData() {
   };
   
   // Record inventory transaction
-  const recordTransaction = async (itemId: number, quantity: number, operation: "in" | "out", notes: string) => {
+  const recordTransaction = async (itemId: string, quantity: number, operation: "in" | "out", notes: string) => {
     try {
       if (!user?.id) return;
       
@@ -256,7 +256,7 @@ export function useInventoryData() {
       }
 
       if (data) {
-        const newItems = data.map((item: any) => ({
+        const newItems: InventoryItem[] = data.map((item: any) => ({
           id: item.id,
           name: item.name,
           sku: item.sku || '',

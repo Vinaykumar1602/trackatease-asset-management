@@ -68,6 +68,11 @@ export const completeService = async (
       slaStatus: "Met"
     };
     
+    // Try to update related sales record if it exists
+    if (service.serialNo && service.serialNo !== "N/A") {
+      await updateRelatedSale(service.serialNo);
+    }
+    
     // Create a service record
     const serviceRecord: ServiceRecord = {
       id: service.id,
@@ -78,11 +83,6 @@ export const completeService = async (
       partsUsed: service.serialNo || 'N/A',
       nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
     };
-    
-    // Try to update related sales record if it exists
-    if (service.serialNo && service.serialNo !== "N/A") {
-      await updateRelatedSale(service.serialNo);
-    }
     
     return {
       success: true,

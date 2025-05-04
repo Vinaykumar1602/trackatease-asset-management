@@ -1,27 +1,11 @@
 
 import { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { 
-  Download, 
-  Upload, 
-  Search,
-  Table as TableIcon, 
-  Calendar
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { ScheduleServiceDialog } from "./components/ScheduleServiceDialog";
 import { ServiceEditDialog } from "./components/ServiceEditDialog";
 import { ServiceCalendarView } from "./components/ServiceCalendarView";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ServiceTable } from "./components/ServiceTable";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ServiceHeader } from "./components/ServiceHeader";
+import { ServiceFilters } from "./components/ServiceFilters";
 import { useServiceData } from "./hooks/useServiceData";
 import { ServiceItem, CalendarService, ServiceRecord } from "./types";
 import { determineSlaStatus } from "./utils/serviceUtils";
@@ -117,7 +101,7 @@ export default function ServiceManagement() {
           .from('sales')
           .select('id')
           .eq('serial', updatedService.serialNo)
-          .single();
+          .maybeSingle();
           
         if (assetData) {
           assetId = assetData.id;
@@ -143,7 +127,17 @@ export default function ServiceManagement() {
       ));
       
       if (updatedService.status === "Completed" && editingService?.status !== "Completed") {
-        await handleAddServiceRecord(updatedService);
+        const serviceRecord: ServiceRecord = {
+          id: updatedService.id,
+          saleId: updatedService.product || "",
+          date: updatedService.scheduledDate || new Date().toISOString().split('T')[0],
+          technician: updatedService.technician || 'Unknown',
+          description: `Service completed for ${updatedService.product || 'Unknown product'}`,
+          partsUsed: updatedService.serialNo || 'N/A',
+          nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
+        };
+        
+        setServiceHistory(prev => [...prev, serviceRecord]);
       }
       
       setEditingService(null);
@@ -159,62 +153,6 @@ export default function ServiceManagement() {
         description: "Failed to update service",
         variant: "destructive"
       });
-    }
-  };
-  
-  const handleAddServiceRecord = async (service: ServiceItem) => {
-    try {
-      if (!user?.id) return;
-      
-      let saleId = null;
-      
-      if (service.serialNo && service.serialNo !== "N/A") {
-        const { data: saleData } = await supabase
-          .from('sales')
-          .select('id')
-          .eq('serial', service.serialNo)
-          .maybeSingle();
-          
-        if (saleData) {
-          saleId = saleData.id;
-        }
-      }
-      
-      if (!saleId) {
-        const { data: serviceData } = await supabase
-          .from('service_requests')
-          .select('asset_id')
-          .eq('id', service.id)
-          .single();
-          
-        if (serviceData && serviceData.asset_id) {
-          saleId = serviceData.asset_id;
-        }
-      }
-      
-      if (saleId) {
-        await supabase
-          .from('sales')
-          .update({
-            status: "Serviced",
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', saleId);
-          
-        const serviceRecord: ServiceRecord = {
-          id: service.id,
-          saleId: saleId,
-          date: service.scheduledDate || new Date().toISOString().split('T')[0],
-          technician: service.technician,
-          description: `Service completed for ${service.product}`,
-          partsUsed: "None",
-          nextServiceDue: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0]
-        };
-        
-        setServiceHistory(prev => [...prev, serviceRecord]);
-      }
-    } catch (error) {
-      console.error("Error adding service record:", error);
     }
   };
   
@@ -391,72 +329,20 @@ export default function ServiceManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Service Management</h1>
-          <p className="text-muted-foreground">Schedule and track maintenance services.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "table" | "calendar")}>
-            <TabsList>
-              <TabsTrigger value="table">
-                <TableIcon className="h-4 w-4 mr-2" />
-                Table View
-              </TabsTrigger>
-              <TabsTrigger value="calendar">
-                <Calendar className="h-4 w-4 mr-2" />
-                Calendar
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <Button variant="outline" size="sm" onClick={handleExportServices}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="h-4 w-4 mr-2" />
-            Import
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept=".csv"
-              className="hidden"
-              onChange={handleImportServices}
-            />
-          </Button>
-          <ScheduleServiceDialog onSave={handleScheduleService} />
-        </div>
-      </div>
+      <ServiceHeader 
+        viewMode={viewMode} 
+        setViewMode={setViewMode}
+        onExport={handleExportServices}
+        onImport={handleImportServices}
+        onScheduleService={handleScheduleService}
+      />
 
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input 
-            type="search" 
-            placeholder="Search service records..." 
-            className="pl-8 w-full"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <Select
-            value={statusFilter}
-            onValueChange={setStatusFilter}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All Statuses</SelectItem>
-              <SelectItem value="Scheduled">Scheduled</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-              <SelectItem value="Overdue">Overdue</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <ServiceFilters
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+      />
 
       <div className="border rounded-md">
         {viewMode === "table" ? (

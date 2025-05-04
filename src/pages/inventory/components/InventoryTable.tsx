@@ -53,7 +53,7 @@ export function InventoryTable({ items, onEdit, onStockUpdate }: InventoryTableP
                 <TableCell>{item.sku}</TableCell>
                 <TableCell>{item.category}</TableCell>
                 <TableCell>{item.quantity}</TableCell>
-                <TableCell>{item.minLevel}</TableCell>
+                <TableCell>{item.minQuantity}</TableCell>
                 <TableCell>{item.location}</TableCell>
                 <TableCell>
                   <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 w-fit ${

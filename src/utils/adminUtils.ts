@@ -40,10 +40,7 @@ export const createAdminUser = async (
     }
     
     // Properly type the result and check for null/undefined
-    const users = data?.users;
-    if (!users) {
-      return { success: false, message: "Unable to retrieve user list" };
-    }
+    const users = data?.users || [];
     
     const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
     

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,9 +60,9 @@ export function ImportInventoryDialog({ onImportComplete }: ImportInventoryDialo
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         const newProgress = prev + 10;
-        if (newProgress >= 100) {
+        if (newProgress >= 90) {
           clearInterval(progressInterval);
-          return 100;
+          return 90;
         }
         return newProgress;
       });
@@ -76,25 +77,34 @@ export function ImportInventoryDialog({ onImportComplete }: ImportInventoryDialo
         const rows = text.split('\n').filter(row => row.trim());
         
         // Use the first row as headers
-        const headers = rows[0].split(',');
+        const headers = rows[0].split(',').map(header => header.trim());
         
         // Map the data to our inventory item format
         const importedItems = rows.slice(1).map(row => {
-          const values = row.split(',');
+          const values = row.split(',').map(value => value.trim());
+          const item: Record<string, any> = {};
+          
+          headers.forEach((header, index) => {
+            if (index < values.length) {
+              item[header.toLowerCase()] = values[index];
+            }
+          });
           
           return {
-            name: values[0] || "",
-            sku: values[1] || "",
-            category: values[2] || "Office Supplies",
-            quantity: parseInt(values[3]) || 0,
-            minLevel: parseInt(values[4]) || 5,
-            location: values[5] || "Main Office",
+            name: item.name || item.itemname || "",
+            sku: item.sku || item.itemcode || item.code || "",
+            category: item.category || "Office Supplies",
+            quantity: parseInt(item.quantity || "0"),
+            minQuantity: parseInt(item.minquantity || item.minlevel || item.minimum || "5"),
+            location: item.location || "Main Office",
+            supplier: item.supplier || item.vendor || "",
+            unitPrice: parseFloat(item.unitprice || item.price || "0")
           };
         });
         
         // Filter out items with missing required fields
         const validItems = importedItems.filter(item => 
-          item.name && (item.sku || item.name.length > 0)
+          item.name && item.name.length > 0
         );
         
         // Complete the import
@@ -149,7 +159,7 @@ export function ImportInventoryDialog({ onImportComplete }: ImportInventoryDialo
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button onClick={() => setIsOpen(true)} variant="outline" size="sm">
           <Upload className="h-4 w-4 mr-2" />
           Import
         </Button>
@@ -232,6 +242,8 @@ export function ImportInventoryDialog({ onImportComplete }: ImportInventoryDialo
               <li>Quantity</li>
               <li>Minimum Level</li>
               <li>Location</li>
+              <li>Supplier</li>
+              <li>Unit Price</li>
             </ol>
           </div>
         </div>

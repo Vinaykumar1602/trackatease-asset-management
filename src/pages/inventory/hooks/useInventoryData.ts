@@ -64,14 +64,43 @@ export function useInventoryData() {
     return "In Stock";
   };
 
-  const handleStockUpdate = async (id, newQuantity) => {
+  // Handle both stock in and stock out operations
+  const handleStockUpdate = async (id, quantity, operation, notes) => {
     try {
+      // Get current item
+      const currentItem = inventoryItems.find(item => item.id === id);
+      if (!currentItem) {
+        throw new Error("Item not found");
+      }
+      
+      // Calculate new quantity
+      const newQuantity = operation === "in" 
+        ? currentItem.quantity + quantity
+        : currentItem.quantity - quantity;
+        
+      if (newQuantity < 0) {
+        toast({
+          title: "Error",
+          description: "Stock quantity cannot be negative",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Update in database
+      const updateData = {
+        quantity: newQuantity,
+        updated_at: new Date().toISOString()
+      };
+      
+      // If it's a stock-in operation, update the last_restock date
+      if (operation === "in") {
+        updateData.last_restock = new Date().toISOString();
+      }
+      
       const { error } = await supabase
         .from('inventory')
-        .update({ 
-          quantity: newQuantity,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', id);
 
       if (error) {
@@ -85,16 +114,22 @@ export function useInventoryData() {
             ...item,
             quantity: newQuantity,
             status: determineStatus(newQuantity, item.minQuantity),
-            updatedAt: new Date().toISOString().split('T')[0]
+            updatedAt: new Date().toISOString().split('T')[0],
+            ...(operation === "in" && { lastRestock: new Date().toISOString().split('T')[0] })
           };
           return updatedItem;
         }
         return item;
       }));
 
+      // Record the transaction
+      await recordTransaction(id, quantity, operation, notes);
+
       toast({
         title: "Success",
-        description: "Stock quantity updated successfully",
+        description: operation === "in" 
+          ? `Added ${quantity} items to inventory`
+          : `Removed ${quantity} items from inventory`,
       });
     } catch (error) {
       console.error('Error updating stock:', error);
@@ -103,6 +138,27 @@ export function useInventoryData() {
         description: "Failed to update stock quantity",
         variant: "destructive",
       });
+    }
+  };
+  
+  // Record inventory transaction
+  const recordTransaction = async (itemId, quantity, operation, notes) => {
+    try {
+      if (!user?.id) return;
+      
+      // Create a transaction record - we could implement this later
+      // when the inventory_transactions table is created
+      console.log("Transaction recorded:", {
+        itemId,
+        quantity,
+        operation,
+        notes,
+        timestamp: new Date().toISOString(),
+        userId: user.id
+      });
+      
+    } catch (error) {
+      console.error('Error recording transaction:', error);
     }
   };
 

@@ -70,7 +70,7 @@ export const completeService = async (
     
     // Try to update related sales record if it exists
     if (service.serialNo && service.serialNo !== "N/A") {
-      await updateRelatedSaleRecord(service.serialNo);
+      await updateSaleRecordBySerial(service.serialNo);
     }
     
     // Create a service record
@@ -95,8 +95,8 @@ export const completeService = async (
   }
 };
 
-// Separate function to update related sale record
-const updateRelatedSaleRecord = async (serialNumber: string) => {
+// Renamed function to avoid any recursive references or circular dependencies
+async function updateSaleRecordBySerial(serialNumber: string) {
   try {
     // Try to find by serial number
     const { data: saleData } = await supabase
@@ -118,4 +118,4 @@ const updateRelatedSaleRecord = async (serialNumber: string) => {
   } catch (error) {
     console.error("Error updating related sale:", error);
   }
-};
+}

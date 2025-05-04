@@ -44,7 +44,7 @@ export const updateServiceStatus = async (
   }
 };
 
-// Fixed completeService function to avoid infinite recursion
+// Modified completeService function to avoid infinite recursion
 export const completeService = async (
   service: ServiceItem
 ): Promise<{
@@ -95,7 +95,7 @@ export const completeService = async (
   }
 };
 
-// Renamed function to avoid recursion issues
+// Separate function to update related sale record
 const updateRelatedSaleRecord = async (serialNumber: string) => {
   try {
     // Try to find by serial number

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,11 +7,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
 import { ServiceItem } from "../types";
 import {
   Select,
@@ -23,11 +20,12 @@ import {
 } from "@/components/ui/select";
 
 interface ScheduleServiceDialogProps {
-  onSave: (data: Omit<ServiceItem, 'id' | 'slaStatus'>) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSchedule: (data: Omit<ServiceItem, 'id' | 'slaStatus'>) => Promise<boolean>;
 }
 
-export function ScheduleServiceDialog({ onSave }: ScheduleServiceDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function ScheduleServiceDialog({ open, onOpenChange, onSchedule }: ScheduleServiceDialogProps) {
   const [formData, setFormData] = useState<Omit<ServiceItem, 'id' | 'slaStatus'>>({
     client: "",
     product: "",
@@ -46,29 +44,25 @@ export function ScheduleServiceDialog({ onSave }: ScheduleServiceDialogProps) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-    onSave(formData);
-    setIsOpen(false);
-    
-    // Reset form
-    setFormData({
-      client: "",
-      product: "",
-      serialNo: "",
-      scheduledDate: new Date().toISOString().split('T')[0],
-      technician: "",
-      status: "Scheduled"
-    });
+  const handleSubmit = async () => {
+    const success = await onSchedule(formData);
+    if (success) {
+      onOpenChange(false);
+      
+      // Reset form
+      setFormData({
+        client: "",
+        product: "",
+        serialNo: "",
+        scheduledDate: new Date().toISOString().split('T')[0],
+        technician: "",
+        status: "Scheduled"
+      });
+    }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Schedule Service
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Schedule New Service</DialogTitle>

@@ -111,7 +111,9 @@ export function ImportInventoryDialog({ onImportComplete }: ImportInventoryDialo
             minQuantity: parseInt(item.minQuantity || "5"),
             location: item.location || "Main Office",
             supplier: item.supplier || "",
-            unitPrice: parseFloat(item.unitPrice || "0")
+            unitPrice: parseFloat(item.unitPrice || "0"),
+            lastRestock: "",  // Add missing property
+            updatedAt: ""     // Add missing property
           };
         });
         

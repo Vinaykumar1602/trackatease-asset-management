@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,10 +48,12 @@ export function AddInventoryItemDialog({
     sku: "",
     category: categories[0] || "Office Supplies",
     quantity: 0,
-    minQuantity: 5,  // Updated from minLevel for consistency
+    minQuantity: 5,
     location: locations[0] || "Main Office",
     supplier: "",
-    unitPrice: 0
+    unitPrice: 0,
+    lastRestock: "",
+    updatedAt: ""
   });
 
   const handleSave = () => {
@@ -60,10 +63,12 @@ export function AddInventoryItemDialog({
       sku: "",
       category: categories[0] || "Office Supplies",
       quantity: 0,
-      minQuantity: 5,  // Updated from minLevel for consistency
+      minQuantity: 5,
       location: locations[0] || "Main Office",
       supplier: "",
-      unitPrice: 0
+      unitPrice: 0,
+      lastRestock: "",
+      updatedAt: ""
     });
     setOpen(false);
   };

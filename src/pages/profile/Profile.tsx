@@ -1,8 +1,8 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,9 +13,18 @@ export default function Profile() {
   const { user, profile, refreshProfile } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [name, setName] = useState(profile?.name || "");
-  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
-  const [department, setDepartment] = useState(profile?.department || "");
+  const [name, setName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [department, setDepartment] = useState("");
+
+  // Initialize form with profile data when available
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name || "");
+      setAvatarUrl(profile.avatar_url || "");
+      setDepartment(profile.department || "");
+    }
+  }, [profile]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,9 +87,9 @@ export default function Profile() {
             <CardContent className="space-y-4">
               <div className="flex justify-center py-4">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={profile?.avatar_url || undefined} />
+                  <AvatarImage src={avatarUrl} />
                   <AvatarFallback className="text-xl bg-primary text-white">
-                    {profile ? getInitials(profile.name) : "??"}
+                    {name ? getInitials(name) : "??"}
                   </AvatarFallback>
                 </Avatar>
               </div>

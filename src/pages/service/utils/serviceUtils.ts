@@ -1,6 +1,5 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ServiceItem, ServiceRecord } from "../types";
 
 export const determineSlaStatus = (scheduledDate: string, status: string): string => {
   if (!scheduledDate || status === "Completed") return "Met";
@@ -69,14 +68,42 @@ async function updateSaleRecordBySerial(serialNumber: string) {
   }
 }
 
-// Fixed completeService function to resolve infinite type instantiation
-export const completeService = async (
-  service: ServiceItem
-): Promise<{
+// Define the return type explicitly to avoid circular references
+export interface ServiceCompletionResult {
   success: boolean;
-  updatedService?: ServiceItem;
-  serviceRecord?: ServiceRecord;
-}> => {
+  updatedService?: {
+    id: string;
+    client: string;
+    product: string;
+    serialNo: string;
+    scheduledDate: string;
+    technician: string;
+    status: string;
+    slaStatus: string;
+  };
+  serviceRecord?: {
+    id: string;
+    saleId: string;
+    date: string;
+    technician: string;
+    description: string;
+    partsUsed: string;
+    nextServiceDue: string;
+  };
+}
+
+export const completeService = async (
+  service: {
+    id: string;
+    client: string;
+    product: string;
+    serialNo: string;
+    scheduledDate: string;
+    technician: string;
+    status: string;
+    slaStatus: string;
+  }
+): Promise<ServiceCompletionResult> => {
   try {
     // Update the service status in the database
     const completionDate = new Date().toISOString();
@@ -86,8 +113,8 @@ export const completeService = async (
       return { success: false };
     }
     
-    // Create updated service object with explicit type matching ServiceItem interface
-    const updatedService: ServiceItem = {
+    // Create updated service object
+    const updatedService = {
       id: service.id,
       client: service.client,
       product: service.product,
@@ -104,7 +131,7 @@ export const completeService = async (
     }
     
     // Create a service record
-    const serviceRecord: ServiceRecord = {
+    const serviceRecord = {
       id: service.id,
       saleId: service.product || "",
       date: service.scheduledDate || new Date().toISOString().split('T')[0],

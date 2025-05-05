@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -112,8 +111,8 @@ export function ImportInventoryDialog({ onImportComplete }: ImportInventoryDialo
             location: item.location || "Main Office",
             supplier: item.supplier || "",
             unitPrice: parseFloat(item.unitPrice || "0"),
-            lastRestock: "",  // Add missing property
-            updatedAt: ""     // Add missing property
+            lastRestock: new Date().toISOString().split('T')[0],  // Use today's date
+            updatedAt: new Date().toISOString().split('T')[0]     // Use today's date
           };
         });
         
@@ -222,7 +221,7 @@ export function ImportInventoryDialog({ onImportComplete }: ImportInventoryDialo
           )}
           
           {importResult && (
-            <div className={`p-4 rounded-lg ${importResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
+            <div className={`p-4 rounded-lg ${importResult.success ? 'bg-green-50 dark:bg-green-950' : 'bg-red-50 dark:bg-red-950'}`}>
               <div className="flex items-start">
                 {importResult.success ? (
                   <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 mr-2" />
@@ -230,7 +229,7 @@ export function ImportInventoryDialog({ onImportComplete }: ImportInventoryDialo
                   <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-2" />
                 )}
                 <div>
-                  <p className={`font-medium ${importResult.success ? 'text-green-800' : 'text-red-800'}`}>
+                  <p className={`font-medium ${importResult.success ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'}`}>
                     {importResult.success ? 'Import Successful' : 'Import Failed'}
                   </p>
                   <p className="text-sm mt-1">

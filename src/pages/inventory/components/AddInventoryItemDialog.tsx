@@ -1,49 +1,51 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export interface InventoryItem {
-  id: string;  // Changed from number to string
+  id: string;
   name: string;
   sku: string;
   category: string;
   quantity: number;
-  minQuantity: number;  // Updated from minLevel for consistency
+  minQuantity: number;
+  status: string; // "In Stock", "Low Stock", "Out of Stock"
   location: string;
-  status: string;
   supplier: string;
   unitPrice: number;
   lastRestock: string;
   updatedAt: string;
 }
 
+type InventoryItemFormData = Omit<InventoryItem, "id" | "status">;
+
 interface AddInventoryItemDialogProps {
   open: boolean;
   setOpen: (open: boolean) => void;
-  onSave: (formData: Omit<InventoryItem, "id" | "status">) => void;
+  onSave: (formData: InventoryItemFormData) => void;
   categories: string[];
   locations: string[];
 }
 
-export function AddInventoryItemDialog({
-  open,
-  setOpen,
-  onSave,
-  categories,
-  locations,
-}: AddInventoryItemDialogProps) {
-  const [formData, setFormData] = useState<Omit<InventoryItem, "id" | "status">>({
+export function AddInventoryItemDialog({ open, setOpen, onSave, categories, locations }: AddInventoryItemDialogProps) {
+  const [formData, setFormData] = useState<InventoryItemFormData>({
     name: "",
     sku: "",
     category: categories[0] || "Office Supplies",
@@ -52,12 +54,24 @@ export function AddInventoryItemDialog({
     location: locations[0] || "Main Office",
     supplier: "",
     unitPrice: 0,
-    lastRestock: "",
-    updatedAt: ""
+    lastRestock: new Date().toISOString().split('T')[0],  // Add today's date
+    updatedAt: new Date().toISOString().split('T')[0]     // Add today's date
   });
 
-  const handleSave = () => {
-    onSave(formData);
+  const handleChange = (field: keyof InventoryItemFormData, value: string | number) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = () => {
+    onSave({
+      ...formData,
+      quantity: Number(formData.quantity),
+      minQuantity: Number(formData.minQuantity),
+      unitPrice: Number(formData.unitPrice),
+      lastRestock: new Date().toISOString().split('T')[0],  // Ensure latest date
+      updatedAt: new Date().toISOString().split('T')[0]     // Ensure latest date
+    });
+    
     setFormData({
       name: "",
       sku: "",
@@ -67,9 +81,10 @@ export function AddInventoryItemDialog({
       location: locations[0] || "Main Office",
       supplier: "",
       unitPrice: 0,
-      lastRestock: "",
-      updatedAt: ""
+      lastRestock: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString().split('T')[0]
     });
+    
     setOpen(false);
   };
 
@@ -79,10 +94,9 @@ export function AddInventoryItemDialog({
         <DialogHeader>
           <DialogTitle>Add Inventory Item</DialogTitle>
           <DialogDescription>
-            Enter details for the new inventory item.
+            Create a new inventory item. Click save when you're done.
           </DialogDescription>
         </DialogHeader>
-
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
@@ -91,12 +105,10 @@ export function AddInventoryItemDialog({
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => handleChange("name", e.target.value)}
               className="col-span-3"
-              placeholder="Item name"
             />
           </div>
-
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="sku" className="text-right">
               SKU
@@ -104,21 +116,19 @@ export function AddInventoryItemDialog({
             <Input
               id="sku"
               value={formData.sku}
-              onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+              onChange={(e) => handleChange("sku", e.target.value)}
               className="col-span-3"
-              placeholder="SKU or item code"
             />
           </div>
-
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="category" className="text-right">
               Category
             </Label>
             <Select
               value={formData.category}
-              onValueChange={(value) => setFormData({ ...formData, category: value })}
+              onValueChange={(value) => handleChange("category", value)}
             >
-              <SelectTrigger className="col-span-3">
+              <SelectTrigger id="category" className="col-span-3">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
@@ -134,7 +144,6 @@ export function AddInventoryItemDialog({
               </SelectContent>
             </Select>
           </div>
-
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="quantity" className="text-right">
               Quantity
@@ -142,36 +151,34 @@ export function AddInventoryItemDialog({
             <Input
               id="quantity"
               type="number"
-              value={formData.quantity}
-              onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
-              className="col-span-3"
               min={0}
+              value={formData.quantity}
+              onChange={(e) => handleChange("quantity", Number(e.target.value))}
+              className="col-span-3"
             />
           </div>
-
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="minQuantity" className="text-right">
-              Min Level
+              Min Quantity
             </Label>
             <Input
               id="minQuantity"
               type="number"
-              value={formData.minQuantity}
-              onChange={(e) => setFormData({ ...formData, minQuantity: parseInt(e.target.value) || 0 })}
-              className="col-span-3"
               min={0}
+              value={formData.minQuantity}
+              onChange={(e) => handleChange("minQuantity", Number(e.target.value))}
+              className="col-span-3"
             />
           </div>
-
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="location" className="text-right">
               Location
             </Label>
             <Select
               value={formData.location}
-              onValueChange={(value) => setFormData({ ...formData, location: value })}
+              onValueChange={(value) => handleChange("location", value)}
             >
-              <SelectTrigger className="col-span-3">
+              <SelectTrigger id="location" className="col-span-3">
                 <SelectValue placeholder="Select location" />
               </SelectTrigger>
               <SelectContent>
@@ -187,7 +194,6 @@ export function AddInventoryItemDialog({
               </SelectContent>
             </Select>
           </div>
-
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="supplier" className="text-right">
               Supplier
@@ -195,12 +201,10 @@ export function AddInventoryItemDialog({
             <Input
               id="supplier"
               value={formData.supplier}
-              onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+              onChange={(e) => handleChange("supplier", e.target.value)}
               className="col-span-3"
-              placeholder="Supplier name"
             />
           </div>
-
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="unitPrice" className="text-right">
               Unit Price
@@ -208,20 +212,16 @@ export function AddInventoryItemDialog({
             <Input
               id="unitPrice"
               type="number"
-              value={formData.unitPrice}
-              onChange={(e) => setFormData({ ...formData, unitPrice: parseFloat(e.target.value) || 0 })}
-              className="col-span-3"
               min={0}
               step={0.01}
+              value={formData.unitPrice}
+              onChange={(e) => handleChange("unitPrice", Number(e.target.value))}
+              className="col-span-3"
             />
           </div>
         </div>
-
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-          <Button type="button" onClick={handleSave} disabled={!formData.name.trim()}>
+          <Button type="submit" onClick={handleSubmit} disabled={!formData.name}>
             Save
           </Button>
         </DialogFooter>

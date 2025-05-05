@@ -95,7 +95,7 @@ export const completeService = async (
   }
 };
 
-// Renamed function to avoid any recursive references or circular dependencies
+// Renamed and changed to a function declaration to avoid circular references
 async function updateSaleRecordBySerial(serialNumber: string) {
   try {
     // Try to find by serial number

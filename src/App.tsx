@@ -1,61 +1,51 @@
 
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Layout from "@/components/Layout";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
+import Login from "@/pages/auth/Login";
+import SignUp from "@/pages/auth/SignUp";
+import Dashboard from "@/pages/dashboard/Dashboard";
+import InventoryTracking from "@/pages/inventory/InventoryTracking";
+import AssetManagement from "@/pages/assets/AssetManagement";
+import ServiceManagement from "@/pages/service/ServiceManagement";
+import SalesTracking from "@/pages/sales/SalesTracking";
+import Settings from "@/pages/settings/Settings";
+import UserManagement from "@/pages/users/UserManagement";
+import NotFound from "@/pages/NotFound";
+import { AppInitializer } from "@/components/AppInitializer";
 
-import LandingPage from "./pages/landing/LandingPage";
-import Index from "./pages/Index";
-import Login from "./pages/auth/Login";
-import NotFound from "./pages/NotFound";
-import MainLayout from "./components/layout/MainLayout";
-import Dashboard from "./pages/dashboard/Dashboard";
-import AssetManagement from "./pages/assets/AssetManagement";
-import InventoryTracking from "./pages/inventory/InventoryTracking";
-import SalesTracking from "./pages/sales/SalesTracking";
-import ServiceManagement from "./pages/service/ServiceManagement";
-import Reports from "./pages/reports/Reports";
-import UsersManagement from "./pages/users/UsersManagement";
-import Settings from "./pages/settings/Settings";
-import Profile from "./pages/profile/Profile";
-import AdminSetup from "./components/admin/AdminSetup";
-
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+function App() {
+  return (
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
+      <AppInitializer />
+      <Router>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/index" element={<Index />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/admin-setup" element={<AdminSetup />} />
-          <Route path="/" element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/assets" element={<AssetManagement />} />
-            <Route path="/inventory" element={<InventoryTracking />} />
-            <Route path="/sales" element={<SalesTracking />} />
-            <Route path="/service" element={<ServiceManagement />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/users" element={<UsersManagement />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/profile" element={<Profile />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Dashboard />} />
+            <Route path="inventory" element={<InventoryTracking />} />
+            <Route path="assets" element={<AssetManagement />} />
+            <Route path="service" element={<ServiceManagement />} />
+            <Route path="sales" element={<SalesTracking />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="users" element={<UserManagement />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </TooltipProvider>
+      </Router>
+      <Toaster />
     </AuthProvider>
-  </QueryClientProvider>
-);
+  );
+}
 
 export default App;

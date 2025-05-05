@@ -44,7 +44,32 @@ export const updateServiceStatus = async (
   }
 };
 
-// Modified completeService function to avoid infinite recursion
+// Function to update sale record by serial number
+async function updateSaleRecordBySerial(serialNumber: string) {
+  try {
+    // Try to find by serial number
+    const { data: saleData } = await supabase
+      .from('sales')
+      .select('id')
+      .eq('serial', serialNumber)
+      .maybeSingle();
+      
+    if (saleData?.id) {
+      // Update the sale status
+      await supabase
+        .from('sales')
+        .update({
+          status: "Serviced",
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', saleData.id);
+    }
+  } catch (error) {
+    console.error("Error updating related sale:", error);
+  }
+}
+
+// Complete service function that avoids circular dependencies
 export const completeService = async (
   service: ServiceItem
 ): Promise<{
@@ -94,28 +119,3 @@ export const completeService = async (
     return { success: false };
   }
 };
-
-// Renamed and changed to a function declaration to avoid circular references
-async function updateSaleRecordBySerial(serialNumber: string) {
-  try {
-    // Try to find by serial number
-    const { data: saleData } = await supabase
-      .from('sales')
-      .select('id')
-      .eq('serial', serialNumber)
-      .maybeSingle();
-      
-    if (saleData?.id) {
-      // Update the sale status
-      await supabase
-        .from('sales')
-        .update({
-          status: "Serviced",
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', saleData.id);
-    }
-  } catch (error) {
-    console.error("Error updating related sale:", error);
-  }
-}

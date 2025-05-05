@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { AuthProvider } from "@/context/AuthContext";
@@ -20,29 +20,27 @@ function App() {
   return (
     <AuthProvider>
       <AppInitializer />
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route 
-            path="/" 
-            element={
-              <ProtectedRoute>
-                <MainLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="inventory" element={<InventoryTracking />} />
-            <Route path="assets" element={<AssetManagement />} />
-            <Route path="service" element={<ServiceManagement />} />
-            <Route path="sales" element={<SalesTracking />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="users" element={<UserManagement />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Dashboard />} />
+          <Route path="inventory" element={<InventoryTracking />} />
+          <Route path="assets" element={<AssetManagement />} />
+          <Route path="service" element={<ServiceManagement />} />
+          <Route path="sales" element={<SalesTracking />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="users" element={<UserManagement />} />
+        </Route>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
       <Toaster />
     </AuthProvider>
   );

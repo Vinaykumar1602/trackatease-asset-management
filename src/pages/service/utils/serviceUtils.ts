@@ -69,7 +69,7 @@ async function updateSaleRecordBySerial(serialNumber: string) {
   }
 }
 
-// Fixed completeService function to avoid infinite recursion
+// Completely rewritten completeService function to fix infinite type instantiation
 export const completeService = async (
   service: ServiceItem
 ): Promise<{
@@ -86,10 +86,17 @@ export const completeService = async (
       return { success: false };
     }
     
-    // Create updated service object
+    // Create updated service object with explicit type
     const updatedService: ServiceItem = {
-      ...service,
+      id: service.id,
+      title: service.title,
+      description: service.description || '',
       status: "Completed",
+      priority: service.priority,
+      scheduledDate: service.scheduledDate,
+      product: service.product || '',
+      technician: service.technician || '',
+      serialNo: service.serialNo || '',
       slaStatus: "Met"
     };
     

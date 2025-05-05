@@ -4,17 +4,21 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
-import { Toaster } from '@/components/ui/toaster'
 import { initializeTheme } from '@/pages/settings/utils/settingsUtils'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // Initialize theme from stored settings
 initializeTheme();
 
+// Create a client
+const queryClient = new QueryClient()
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <App />
-      <Toaster />
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </QueryClientProvider>
   </React.StrictMode>,
 )

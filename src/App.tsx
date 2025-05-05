@@ -1,6 +1,6 @@
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Layout from "@/components/Layout";
+import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
@@ -28,7 +28,7 @@ function App() {
             path="/" 
             element={
               <ProtectedRoute>
-                <Layout />
+                <MainLayout />
               </ProtectedRoute>
             }
           >

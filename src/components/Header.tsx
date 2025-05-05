@@ -7,8 +7,8 @@ import { ThemeToggle } from "./ThemeToggle";
 import UserMenu from "./UserMenu";
 
 interface HeaderProps {
-  toggleSidebar: () => void;
-  isSidebarOpen: boolean;
+  toggleSidebar?: () => void;
+  isSidebarOpen?: boolean;
 }
 
 export default function Header({ toggleSidebar, isSidebarOpen }: HeaderProps) {
@@ -18,15 +18,17 @@ export default function Header({ toggleSidebar, isSidebarOpen }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
       <div className="container flex h-14 items-center">
-        <div className="mr-4 flex md:hidden">
-          <Button variant="ghost" size="icon" onClick={toggleSidebar}>
-            {isSidebarOpen ? 
-              <X className="h-5 w-5" /> :
-              <Menu className="h-5 w-5" />
-            }
-            <span className="sr-only">Toggle Menu</span>
-          </Button>
-        </div>
+        {toggleSidebar && (
+          <div className="mr-4 flex md:hidden">
+            <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+              {isSidebarOpen ? 
+                <X className="h-5 w-5" /> :
+                <Menu className="h-5 w-5" />
+              }
+              <span className="sr-only">Toggle Menu</span>
+            </Button>
+          </div>
+        )}
         
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
           <div className="flex items-center space-x-2">

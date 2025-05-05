@@ -9,7 +9,6 @@ import { useAuth } from '@/context/AuthContext';
 export default function AdminDashboard() {
   const { isInitializing, hasInitialized, initializeData } = useInitializeData();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
 
   const adminModules = [
     {
@@ -50,16 +49,7 @@ export default function AdminDashboard() {
     }
   ];
 
-  if (!isAdmin) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
-          <p className="text-gray-600 mt-2">You need administrator privileges to access this page.</p>
-        </div>
-      </div>
-    );
-  }
+  // Removed admin restriction check - all users now have access
 
   return (
     <div className="space-y-6">

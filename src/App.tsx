@@ -15,6 +15,8 @@ import Settings from "@/pages/settings/Settings";
 import UserManagement from "@/pages/users/UserManagement";
 import NotFound from "@/pages/NotFound";
 import { AppInitializer } from "@/components/AppInitializer";
+import AdminDashboard from "@/components/admin/AdminDashboard";
+import Reports from "@/pages/reports/Reports";
 
 function App() {
   return (
@@ -32,12 +34,15 @@ function App() {
           }
         >
           <Route index element={<Dashboard />} />
+          <Route path="dashboard" element={<Dashboard />} />
           <Route path="inventory" element={<InventoryTracking />} />
           <Route path="assets" element={<AssetManagement />} />
           <Route path="service" element={<ServiceManagement />} />
           <Route path="sales" element={<SalesTracking />} />
           <Route path="settings" element={<Settings />} />
           <Route path="users" element={<UserManagement />} />
+          <Route path="admin" element={<AdminDashboard />} />
+          <Route path="reports" element={<Reports />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

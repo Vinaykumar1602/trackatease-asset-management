@@ -31,7 +31,7 @@ export default function SidebarNav() {
   const location = useLocation();
   
   const mainNavItems = [
-    { title: "Dashboard", path: "/dashboard", icon: Home },
+    { title: "Dashboard", path: "/", icon: Home },
     { title: "Assets", path: "/assets", icon: Database },
     { title: "Inventory", path: "/inventory", icon: Package2 },
     { title: "Sales & AMC", path: "/sales", icon: ShoppingCart },
@@ -39,9 +39,11 @@ export default function SidebarNav() {
     { title: "Reports", path: "/reports", icon: FileBarChart },
   ];
   
-  const adminNavItems = [
+  // No longer separating admin items - all users have access to everything
+  const systemNavItems = [
     { title: "Users & Roles", path: "/users", icon: Users },
     { title: "Settings", path: "/settings", icon: Settings },
+    { title: "Admin", path: "/admin", icon: Settings },
   ];
 
   return (
@@ -73,7 +75,7 @@ export default function SidebarNav() {
         </SidebarMenu>
         <SidebarSeparator />
         <SidebarMenu>
-          {adminNavItems.map((item) => (
+          {systemNavItems.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild>
                 <NavLink 

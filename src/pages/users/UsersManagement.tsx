@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -258,15 +257,6 @@ export default function UsersManagement() {
 
   const handleAddUser = async (userData: Omit<User, "id" | "lastLogin">) => {
     try {
-      if (!isAdmin) {
-        toast({
-          title: "Permission Denied",
-          description: "Only administrators can add new users",
-          variant: "destructive"
-        });
-        return;
-      }
-      
       const { data, error } = await supabase
         .from('profiles')
         .insert([{ 
@@ -317,15 +307,6 @@ export default function UsersManagement() {
 
   const handleUpdateUser = async (updatedUser: User) => {
     try {
-      if (!isAdmin) {
-        toast({
-          title: "Permission Denied",
-          description: "Only administrators can update users",
-          variant: "destructive"
-        });
-        return;
-      }
-      
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -482,15 +463,6 @@ export default function UsersManagement() {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      if (!isAdmin) {
-        toast({
-          title: "Permission Denied",
-          description: "Only administrators can delete users",
-          variant: "destructive"
-        });
-        return;
-      }
-      
       const { error } = await supabase
         .from('profiles')
         .delete()
@@ -528,17 +500,6 @@ export default function UsersManagement() {
     
     return matchesSearch && matchesRole && matchesStatus;
   });
-
-  if (!isAdmin && !import.meta.env.DEV) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
-          <p className="text-gray-600 mt-2">You need administrator privileges to access this page.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

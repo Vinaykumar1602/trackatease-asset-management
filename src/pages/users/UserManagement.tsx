@@ -14,7 +14,6 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function UserManagement() {
   const [loading, setLoading] = useState(false);
-  const { isAdmin } = useAuth();
   const { toast } = useToast();
 
   const handleAction = () => {
@@ -28,19 +27,7 @@ export default function UserManagement() {
     }, 1000);
   };
 
-  if (!isAdmin) {
-    return (
-      <div className="container py-10">
-        <div className="flex flex-col items-center justify-center space-y-4 text-center">
-          <AlertCircle className="h-12 w-12 text-muted-foreground" />
-          <h1 className="text-2xl font-bold">Access Denied</h1>
-          <p className="text-muted-foreground">
-            You need administrator privileges to access this page.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Removed admin restriction check - all users now have access
 
   return (
     <div className="container py-10 space-y-8">

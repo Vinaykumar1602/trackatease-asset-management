@@ -69,7 +69,7 @@ async function updateSaleRecordBySerial(serialNumber: string) {
   }
 }
 
-// Completely rewritten completeService function to fix infinite type instantiation
+// Fixed completeService function to resolve infinite type instantiation
 export const completeService = async (
   service: ServiceItem
 ): Promise<{

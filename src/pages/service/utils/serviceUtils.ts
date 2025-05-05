@@ -69,7 +69,7 @@ async function updateSaleRecordBySerial(serialNumber: string) {
   }
 }
 
-// Modified completeService function to avoid infinite recursion
+// Modified completeService function to fix infinite recursion
 export const completeService = async (
   service: ServiceItem
 ): Promise<{
@@ -86,7 +86,7 @@ export const completeService = async (
       return { success: false };
     }
     
-    // Create updated service
+    // Create updated service object without calling itself
     const updatedService: ServiceItem = {
       ...service,
       status: "Completed",

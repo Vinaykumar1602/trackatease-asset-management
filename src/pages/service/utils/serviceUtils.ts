@@ -86,17 +86,15 @@ export const completeService = async (
       return { success: false };
     }
     
-    // Create updated service object with explicit type
+    // Create updated service object with explicit type matching ServiceItem interface
     const updatedService: ServiceItem = {
       id: service.id,
-      title: service.title,
-      description: service.description || '',
-      status: "Completed",
-      priority: service.priority,
+      client: service.client,
+      product: service.product,
+      serialNo: service.serialNo,
       scheduledDate: service.scheduledDate,
-      product: service.product || '',
-      technician: service.technician || '',
-      serialNo: service.serialNo || '',
+      technician: service.technician,
+      status: "Completed",
       slaStatus: "Met"
     };
     

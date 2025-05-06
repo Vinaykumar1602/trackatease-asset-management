@@ -158,7 +158,7 @@ export const useServiceData = (userId: string | undefined) => {
   
   // Export services to CSV
   const exportServices = () => {
-    exportToCsv(serviceItems, toast);
+    exportToCsv(serviceItems);
   };
   
   // Import services from CSV
@@ -171,9 +171,19 @@ export const useServiceData = (userId: string | undefined) => {
       if (success) {
         // Refresh service list
         await loadServiceItems();
+        
+        toast({
+          title: "Import Successful", 
+          description: "Services have been imported successfully"
+        });
         return true;
       }
       
+      toast({
+        title: "Import Failed",
+        description: "No valid services found in the file",
+        variant: "destructive"
+      });
       return false;
     } catch (error) {
       console.error("Error importing services:", error);

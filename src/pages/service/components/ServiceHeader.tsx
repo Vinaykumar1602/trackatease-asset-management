@@ -47,7 +47,12 @@ export function ServiceHeader({
         Import
       </Button>
       
+      <Button variant="default" size="sm" onClick={() => setDialogOpen(true)}>
+        <Plus className="h-4 w-4 mr-2" /> Schedule Service
+      </Button>
+      
       <ScheduleServiceDialog 
+        open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSchedule={onScheduleService}
       />

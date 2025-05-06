@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ServiceItem, ServiceRecord, SalesData } from "../types";
 import { determineSlaStatus } from "../utils/serviceUtils";
-import { useToast } from "@/components/ui/use-toast";
+import { toast as toastFunction } from "@/components/ui/use-toast";
 
 // Fetch service items from Supabase
 export const fetchServiceItems = async (userId: string): Promise<ServiceItem[]> => {
@@ -148,7 +148,7 @@ export const editService = async (updatedService: ServiceItem): Promise<boolean>
 };
 
 // Export services to CSV
-export const exportToCsv = (serviceItems: ServiceItem[], toast: ReturnType<typeof useToast>) => {
+export const exportToCsv = (serviceItems: ServiceItem[]) => {
   const headers = ["ID", "Client", "Product", "Serial No", "Scheduled Date", "Technician", "Status", "SLA Status"];
   const csvContent = [
     headers.join(','),
@@ -169,7 +169,7 @@ export const exportToCsv = (serviceItems: ServiceItem[], toast: ReturnType<typeo
   link.click();
   document.body.removeChild(link);
   
-  toast({
+  toastFunction({
     title: "Export Successful",
     description: "Service records have been exported to CSV."
   });

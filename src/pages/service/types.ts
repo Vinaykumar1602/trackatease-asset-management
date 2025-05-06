@@ -8,6 +8,31 @@ export interface ServiceItem {
   technician: string;
   status: string;
   slaStatus: string;
+  // Additional fields needed by serviceApi
+  assetId?: string;
+  priority?: string;
+  completionDate?: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  title?: string;
+  assignedTo?: string;
+}
+
+export interface ServiceFormData {
+  saleId?: string;
+  assetId?: string;
+  title?: string;
+  date?: string;
+  scheduledDate?: string;
+  technician?: string;
+  assignedTo?: string;
+  description?: string;
+  partsUsed?: string;
+  nextServiceDue?: string;
+  remarks?: string;
+  status?: string;
+  priority?: string;
 }
 
 export interface SalesData {
@@ -39,4 +64,5 @@ export interface ServiceRecord {
   description: string;
   partsUsed: string;
   nextServiceDue: string;
+  remarks?: string;
 }

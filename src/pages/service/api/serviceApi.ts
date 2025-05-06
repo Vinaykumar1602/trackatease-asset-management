@@ -16,12 +16,16 @@ export const fetchServices = async (): Promise<ServiceItem[]> => {
     return data.map(service => ({
       id: service.id,
       title: service.title,
+      product: service.title || "",  // Map title to product for compatibility
+      client: "", // Will be populated later with sales data
+      serialNo: "", // Will be populated later with sales data
       assetId: service.asset_id || "",
       status: service.status,
       priority: service.priority,
       scheduledDate: service.scheduled_date ? new Date(service.scheduled_date).toISOString().split('T')[0] : "",
-      completionDate: service.completion_date ? new Date(service.completion_date).toISOString().split('T')[0] : "",
+      technician: service.assigned_to || "",
       assignedTo: service.assigned_to || "",
+      completionDate: service.completion_date ? new Date(service.completion_date).toISOString().split('T')[0] : "",
       slaStatus: calculateSlaStatus(service.priority, service.scheduled_date),
       createdAt: service.created_at ? new Date(service.created_at).toISOString() : "",
       updatedAt: service.updated_at ? new Date(service.updated_at).toISOString() : "",
@@ -42,13 +46,13 @@ export const createService = async (
   const { data, error } = await supabase
     .from('service_requests')
     .insert({
-      title: service.title,
+      title: service.title || service.description,
       asset_id: service.assetId || null,
       status: service.status || "pending",
       priority: service.priority || "medium",
-      scheduled_date: service.scheduledDate,
-      assigned_to: service.assignedTo || null,
-      description: service.description || null,
+      scheduled_date: service.scheduledDate || service.date,
+      assigned_to: service.assignedTo || service.technician || null,
+      description: service.description || service.remarks || null,
       requested_by: userId
     })
     .select();
@@ -62,12 +66,16 @@ export const createService = async (
     return {
       id: data[0].id,
       title: data[0].title,
+      product: data[0].title || "",  // Map title to product for compatibility
+      client: "", // Will be populated later
+      serialNo: "", // Will be populated later
       assetId: data[0].asset_id || "",
       status: data[0].status,
       priority: data[0].priority,
       scheduledDate: data[0].scheduled_date ? new Date(data[0].scheduled_date).toISOString().split('T')[0] : "",
-      completionDate: data[0].completion_date ? new Date(data[0].completion_date).toISOString().split('T')[0] : "",
+      technician: data[0].assigned_to || "",
       assignedTo: data[0].assigned_to || "",
+      completionDate: data[0].completion_date ? new Date(data[0].completion_date).toISOString().split('T')[0] : "",
       slaStatus: calculateSlaStatus(data[0].priority, data[0].scheduled_date),
       createdAt: data[0].created_at ? new Date(data[0].created_at).toISOString() : "",
       updatedAt: data[0].updated_at ? new Date(data[0].updated_at).toISOString() : "",
@@ -83,13 +91,13 @@ export const updateService = async (service: ServiceItem): Promise<boolean> => {
   const { error } = await supabase
     .from('service_requests')
     .update({
-      title: service.title,
+      title: service.title || service.product,
       asset_id: service.assetId || null,
       status: service.status,
-      priority: service.priority,
+      priority: service.priority || "medium",
       scheduled_date: service.scheduledDate,
       completion_date: service.completionDate || null,
-      assigned_to: service.assignedTo || null,
+      assigned_to: service.assignedTo || service.technician || null,
       description: service.description || null,
       updated_at: new Date().toISOString()
     })

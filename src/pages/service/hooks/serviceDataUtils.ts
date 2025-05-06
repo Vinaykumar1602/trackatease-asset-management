@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ServiceItem, ServiceRecord, SalesData } from "../types";
 import { determineSlaStatus } from "../utils/serviceUtils";
@@ -42,7 +41,7 @@ export const fetchServiceItems = async (userId: string): Promise<ServiceItem[]> 
   return [];
 };
 
-// Fetch service history from Supabase
+// Fetch service history
 export const fetchServiceHistory = async (userId: string): Promise<ServiceRecord[]> => {
   const { data, error } = await supabase
     .from('service_requests')
@@ -66,7 +65,7 @@ export const fetchServiceHistory = async (userId: string): Promise<ServiceRecord
   return [];
 };
 
-// Schedule a new service
+// Schedule a new service - explicitly defining parameter and return types
 export const scheduleService = async (
   newService: Omit<ServiceItem, 'id' | 'slaStatus'>, 
   userId: string

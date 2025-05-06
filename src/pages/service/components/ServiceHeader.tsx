@@ -52,7 +52,6 @@ export function ServiceHeader({
       </Button>
       
       <ScheduleServiceDialog 
-        open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSchedule={onScheduleService}
       />

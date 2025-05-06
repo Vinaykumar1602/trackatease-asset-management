@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { ServiceItem, ServiceRecord } from "../types";
@@ -188,7 +187,7 @@ export const useServiceData = (userId: string | undefined) => {
     } catch (error) {
       console.error("Error importing services:", error);
       toast({
-        title: "Import Failed",
+        title: "Error",
         description: "There was an error importing the file.",
         variant: "destructive"
       });

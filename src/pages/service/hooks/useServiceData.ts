@@ -88,22 +88,27 @@ export const useServiceData = (userId: string | undefined) => {
 
   // Handle service completion with the utility function
   const completeService = useCallback(async (service: ServiceItem) => {
-    const result = await completeServiceUtil(service);
-    
-    if (result.success && result.updatedService && result.serviceRecord) {
-      // Update local state with the completed service
-      setServiceItems(currentItems => 
-        currentItems.map(item => 
-          item.id === result.updatedService!.id ? result.updatedService! : item
-        )
-      );
+    try {
+      const result = await completeServiceUtil(service);
       
-      // Add to service history
-      setServiceHistory(prev => [...prev, result.serviceRecord!]);
-      return true;
+      if (result.success && result.updatedService && result.serviceRecord) {
+        // Update local state with the completed service
+        setServiceItems(currentItems => 
+          currentItems.map(item => 
+            item.id === result.updatedService!.id ? result.updatedService! : item
+          )
+        );
+        
+        // Add to service history
+        setServiceHistory(prev => [...prev, result.serviceRecord!]);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("Error completing service:", error);
+      return false;
     }
-    
-    return false;
   }, []);
 
   // Schedule a new service
@@ -274,11 +279,11 @@ export const useServiceData = (userId: string | undefined) => {
   };
   
   // Import services from CSV
-  const importServices = async (file: File): Promise<boolean> => {
+  const importServices = async (file: File) => {
     try {
       if (!userId) return false;
       
-      return new Promise((resolve) => {
+      return new Promise<boolean>((resolve) => {
         const reader = new FileReader();
         reader.onload = async (event) => {
           try {

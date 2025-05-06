@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { SaleFormData } from "../types";
+import { useToast } from "@/components/ui/use-toast";
 
 interface AddSaleDialogProps {
   onSave: (data: SaleFormData) => void;
@@ -21,12 +22,13 @@ interface AddSaleDialogProps {
 
 export function AddSaleDialog({ onSave }: AddSaleDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
   const [formData, setFormData] = useState<SaleFormData>({
     productName: "",
     serialNo: "",
     client: "",
     contact: "",
-    saleDate: "",
+    saleDate: new Date().toISOString().split('T')[0], // Set default to today
     warrantyExpiry: "",
     amcStartDate: "",
     amcExpiryDate: "",
@@ -38,14 +40,41 @@ export function AddSaleDialog({ onSave }: AddSaleDialogProps) {
   };
 
   const handleSubmit = () => {
-    onSave(formData);
+    // Basic validation
+    if (!formData.productName) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter a product name",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.client) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter a client name",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // If warranty expiry is not set, set it to 1 year from sale date
+    let formDataToSubmit = { ...formData };
+    if (!formDataToSubmit.warrantyExpiry && formDataToSubmit.saleDate) {
+      const warrantyDate = new Date(formDataToSubmit.saleDate);
+      warrantyDate.setFullYear(warrantyDate.getFullYear() + 1);
+      formDataToSubmit.warrantyExpiry = warrantyDate.toISOString().split('T')[0];
+    }
+
+    onSave(formDataToSubmit);
     setIsOpen(false);
     setFormData({
       productName: "",
       serialNo: "",
       client: "",
       contact: "",
-      saleDate: "",
+      saleDate: new Date().toISOString().split('T')[0],
       warrantyExpiry: "",
       amcStartDate: "",
       amcExpiryDate: "",

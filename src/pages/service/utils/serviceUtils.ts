@@ -68,41 +68,37 @@ async function updateSaleRecordBySerial(serialNumber: string) {
   }
 }
 
+// Explicitly define the service object interface to avoid circular references
+export interface ServiceItem {
+  id: string;
+  client: string;
+  product: string;
+  serialNo: string;
+  scheduledDate: string;
+  technician: string;
+  status: string;
+  slaStatus: string;
+}
+
+export interface ServiceRecord {
+  id: string;
+  saleId: string;
+  date: string;
+  technician: string;
+  description: string;
+  partsUsed: string;
+  nextServiceDue: string;
+}
+
 // Define the return type explicitly to avoid circular references
 export interface ServiceCompletionResult {
   success: boolean;
-  updatedService?: {
-    id: string;
-    client: string;
-    product: string;
-    serialNo: string;
-    scheduledDate: string;
-    technician: string;
-    status: string;
-    slaStatus: string;
-  };
-  serviceRecord?: {
-    id: string;
-    saleId: string;
-    date: string;
-    technician: string;
-    description: string;
-    partsUsed: string;
-    nextServiceDue: string;
-  };
+  updatedService?: ServiceItem;
+  serviceRecord?: ServiceRecord;
 }
 
 export const completeService = async (
-  service: {
-    id: string;
-    client: string;
-    product: string;
-    serialNo: string;
-    scheduledDate: string;
-    technician: string;
-    status: string;
-    slaStatus: string;
-  }
+  service: ServiceItem
 ): Promise<ServiceCompletionResult> => {
   try {
     // Update the service status in the database
@@ -114,7 +110,7 @@ export const completeService = async (
     }
     
     // Create updated service object
-    const updatedService = {
+    const updatedService: ServiceItem = {
       id: service.id,
       client: service.client,
       product: service.product,
@@ -131,7 +127,7 @@ export const completeService = async (
     }
     
     // Create a service record
-    const serviceRecord = {
+    const serviceRecord: ServiceRecord = {
       id: service.id,
       saleId: service.product || "",
       date: service.scheduledDate || new Date().toISOString().split('T')[0],

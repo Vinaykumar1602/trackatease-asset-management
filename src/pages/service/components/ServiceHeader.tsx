@@ -47,10 +47,10 @@ export function ServiceHeader({
         Import
       </Button>
       
-      <Button size="sm" onClick={() => setDialogOpen(true)}>
-        <Plus className="h-4 w-4 mr-2" />
-        Schedule Service
-      </Button>
+      <ScheduleServiceDialog 
+        onOpenChange={setDialogOpen}
+        onSchedule={onScheduleService}
+      />
       
       <div className="flex border rounded-md overflow-hidden">
         <Button
@@ -70,11 +70,6 @@ export function ServiceHeader({
           <Calendar className="h-4 w-4" />
         </Button>
       </div>
-      
-      <ScheduleServiceDialog 
-        onOpenChange={setDialogOpen}
-        onSchedule={onScheduleService}
-      />
     </div>
   );
 }

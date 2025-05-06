@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -107,7 +108,7 @@ export default function AssetManagement() {
   });
   
   const assets: Asset[] = (supabaseAssets || []).map(asset => ({
-    id: parseInt(asset.id.substring(0, 8), 16),
+    id: asset.id,  // Using string ID directly
     name: asset.name,
     category: asset.category,
     serial: asset.serial || "",

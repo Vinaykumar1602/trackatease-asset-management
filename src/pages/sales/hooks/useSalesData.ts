@@ -2,9 +2,16 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { SalesItem, ServiceRecord, SaleFormData, ServiceFormData, ImportFormat } from "../types";
-import { calculateStatus } from "../utils/salesUtils";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
+import { 
+  fetchSalesData, 
+  fetchServiceRecords, 
+  createSale, 
+  updateSale, 
+  deleteSale, 
+  createServiceRecord, 
+  importData 
+} from "../api/salesApi";
 
 export function useSalesData() {
   const [salesItems, setSalesItems] = useState<SalesItem[]>([]);
@@ -16,44 +23,16 @@ export function useSalesData() {
 
   useEffect(() => {
     if (user) {
-      fetchSalesData();
-      fetchServiceRecords();
+      loadSalesData();
+      loadServiceRecords();
     }
   }, [user?.id]);
 
-  const fetchSalesData = async () => {
+  const loadSalesData = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('sales')
-        .select('*');
-
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
-        // Transform the data to match the expected SalesItem structure
-        const formattedItems: SalesItem[] = data.map(item => ({
-          id: item.id,
-          productName: item.product_name || "Unknown Product",
-          serialNo: item.product_name || `SALES-${item.id}`, // Use product_name as fallback
-          client: item.customer_name || "Unknown Client",
-          clientBranch: "",  // These fields may not exist in DB
-          clientBranchCode: "",
-          contact: "",
-          saleDate: new Date(item.sale_date).toISOString().split('T')[0],
-          warrantyExpiry: new Date(new Date(item.sale_date).setFullYear(new Date(item.sale_date).getFullYear() + 1)).toISOString().split('T')[0], // Set warranty to 1 year
-          amcStartDate: new Date(item.sale_date).toISOString().split('T')[0],
-          amcExpiryDate: new Date(new Date(item.sale_date).setFullYear(new Date(item.sale_date).getFullYear() + 1)).toISOString().split('T')[0], // Set AMC to 1 year
-          status: item.status || "Active",
-          location: "",
-          lastService: "",
-          lastServiceNotes: ""
-        }));
-
-        setSalesItems(formattedItems);
-      }
+      const data = await fetchSalesData();
+      setSalesItems(data);
     } catch (error) {
       console.error('Error fetching sales data:', error);
       toast({
@@ -66,31 +45,10 @@ export function useSalesData() {
     }
   };
 
-  const fetchServiceRecords = async () => {
+  const loadServiceRecords = async () => {
     try {
-      const { data, error } = await supabase
-        .from('service_requests')
-        .select('*');
-
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
-        // Transform the data to match the expected ServiceRecord structure
-        const formattedRecords: ServiceRecord[] = data.map(record => ({
-          id: record.id,
-          saleId: record.asset_id || "", // Use asset_id as saleId
-          date: record.scheduled_date ? new Date(record.scheduled_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          technician: record.assigned_to || "Unassigned",
-          description: record.title || "Service visit",
-          partsUsed: "",
-          nextServiceDue: record.completion_date ? new Date(record.completion_date).toISOString().split('T')[0] : "",
-          remarks: record.description || ""
-        }));
-
-        setServiceRecords(formattedRecords);
-      }
+      const data = await fetchServiceRecords();
+      setServiceRecords(data);
     } catch (error) {
       console.error('Error fetching service records:', error);
       toast({
@@ -107,45 +65,9 @@ export function useSalesData() {
 
       console.log("Adding sale with data:", formData);
 
-      const { data, error } = await supabase
-        .from('sales')
-        .insert({
-          product_name: formData.productName,
-          customer_name: formData.client,
-          sale_date: formData.saleDate,
-          status: "Active",
-          created_by: user.id,
-          quantity: 1,
-          amount: 0
-        })
-        .select();
+      const newItem = await createSale(formData, user.id);
 
-      if (error) {
-        console.error("Supabase insert error:", error);
-        throw error;
-      }
-
-      console.log("Sale added successfully, response:", data);
-
-      if (data && data[0]) {
-        const newItem: SalesItem = {
-          id: data[0].id,
-          productName: data[0].product_name,
-          serialNo: formData.serialNo || `SALES-${data[0].id}`,
-          client: data[0].customer_name,
-          clientBranch: formData.clientBranch || '',
-          clientBranchCode: formData.clientBranchCode || '',
-          contact: formData.contact || '',
-          saleDate: new Date(data[0].sale_date).toISOString().split('T')[0],
-          warrantyExpiry: formData.warrantyExpiry,
-          amcStartDate: formData.amcStartDate !== 'N/A' ? formData.amcStartDate : 'N/A',
-          amcExpiryDate: formData.amcExpiryDate !== 'N/A' ? formData.amcExpiryDate : 'N/A',
-          status: data[0].status,
-          location: formData.location || '',
-          lastService: '',
-          lastServiceNotes: ''
-        };
-
+      if (newItem) {
         setSalesItems(prev => [...prev, newItem]);
         
         toast({
@@ -165,36 +87,25 @@ export function useSalesData() {
 
   const handleUpdateSale = async (id: string, formData: SaleFormData) => {
     try {
-      const { error } = await supabase
-        .from('sales')
-        .update({
-          product_name: formData.productName,
-          customer_name: formData.client,
-          sale_date: formData.saleDate,
-          status: formData.status || "Active",
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
+      const success = await updateSale(id, formData);
 
-      if (error) {
-        throw error;
+      if (success) {
+        setSalesItems(prev => prev.map(item => {
+          if (item.id === id) {
+            return { 
+              ...item, 
+              ...formData,
+              status: formData.status || item.status
+            };
+          }
+          return item;
+        }));
+        
+        toast({
+          title: "Sale Updated",
+          description: "The sale record has been updated."
+        });
       }
-
-      setSalesItems(prev => prev.map(item => {
-        if (item.id === id) {
-          return { 
-            ...item, 
-            ...formData,
-            status: formData.status || item.status
-          };
-        }
-        return item;
-      }));
-      
-      toast({
-        title: "Sale Updated",
-        description: "The sale record has been updated."
-      });
     } catch (error) {
       console.error('Error updating sale:', error);
       toast({
@@ -207,29 +118,17 @@ export function useSalesData() {
 
   const handleDeleteSale = async (id: string) => {
     try {
-      // First delete related service records
-      await supabase
-        .from('service_requests')
-        .delete()
-        .eq('asset_id', id);
+      const success = await deleteSale(id);
+
+      if (success) {
+        setSalesItems(prev => prev.filter(item => item.id !== id));
+        setServiceRecords(prev => prev.filter(record => record.saleId !== id));
         
-      // Then delete the sale
-      const { error } = await supabase
-        .from('sales')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        throw error;
+        toast({
+          title: "Sale Deleted",
+          description: "The sale record has been removed."
+        });
       }
-
-      setSalesItems(prev => prev.filter(item => item.id !== id));
-      setServiceRecords(prev => prev.filter(record => record.saleId !== id));
-      
-      toast({
-        title: "Sale Deleted",
-        description: "The sale record has been removed."
-      });
     } catch (error) {
       console.error('Error deleting sale:', error);
       toast({
@@ -244,46 +143,10 @@ export function useSalesData() {
     try {
       if (!user?.id) return;
 
-      const { data, error } = await supabase
-        .from('service_requests')
-        .insert({
-          asset_id: formData.saleId,
-          title: formData.description,
-          description: formData.remarks,
-          scheduled_date: formData.date,
-          priority: "medium",
-          status: "completed",
-          requested_by: user.id,
-          assigned_to: formData.technician
-        })
-        .select();
-
-      if (error) {
-        throw error;
-      }
-
-      if (data && data[0]) {
-        const newRecord: ServiceRecord = {
-          id: data[0].id,
-          saleId: data[0].asset_id || "",
-          date: data[0].scheduled_date ? new Date(data[0].scheduled_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          technician: data[0].assigned_to || "Unassigned",
-          description: data[0].title || "Service visit",
-          partsUsed: formData.partsUsed || '',
-          nextServiceDue: formData.nextServiceDue || '',
-          remarks: data[0].description || ''
-        };
-        
+      const newRecord = await createServiceRecord(formData, user.id);
+      
+      if (newRecord) {
         setServiceRecords(prev => [...prev, newRecord]);
-        
-        // Update the sale status to indicate service
-        await supabase
-          .from('sales')
-          .update({
-            status: "Serviced",
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', formData.saleId);
           
         setSalesItems(prev => prev.map(item => {
           if (item.id === formData.saleId) {
@@ -301,7 +164,11 @@ export function useSalesData() {
           title: "Service Added",
           description: "Service record has been added successfully."
         });
+
+        return true;
       }
+      
+      return false;
     } catch (error) {
       console.error('Error adding service record:', error);
       toast({
@@ -309,113 +176,26 @@ export function useSalesData() {
         description: "Failed to add service record",
         variant: "destructive"
       });
+      return false;
     }
   };
 
-  const handleImportItems = async (data: ImportFormat[], type: 'sales' | 'service') => {
+  const handleImportComplete = async (data: ImportFormat[], type: 'sales' | 'service') => {
     try {
       if (!user?.id || !data.length) return;
       
-      if (type === 'sales') {
-        // Transform import data to match the database schema
-        const salesData = data.map(item => ({
-          product_name: item.productName || 'Unknown Product',
-          customer_name: item.client || 'Unknown Client',
-          sale_date: item.saleDate || new Date().toISOString(),
-          status: item.status || 'Active',
-          created_by: user.id,
-          quantity: 1,
-          amount: 0
-        }));
-
-        const { data: insertedData, error } = await supabase
-          .from('sales')
-          .insert(salesData)
-          .select();
-
-        if (error) {
-          throw error;
-        }
-
-        if (insertedData) {
-          const newSales: SalesItem[] = insertedData.map(item => ({
-            id: item.id,
-            productName: item.product_name,
-            serialNo: item.product_name || `SALES-${item.id}`,
-            client: item.customer_name,
-            clientBranch: '',
-            clientBranchCode: '',
-            contact: '',
-            saleDate: new Date(item.sale_date).toISOString().split('T')[0],
-            warrantyExpiry: new Date(new Date(item.sale_date).setFullYear(new Date(item.sale_date).getFullYear() + 1)).toISOString().split('T')[0],
-            amcStartDate: new Date(item.sale_date).toISOString().split('T')[0],
-            amcExpiryDate: new Date(new Date(item.sale_date).setFullYear(new Date(item.sale_date).getFullYear() + 1)).toISOString().split('T')[0],
-            status: item.status,
-            location: '',
-            lastService: '',
-            lastServiceNotes: ''
-          }));
-
-          setSalesItems(prev => [...prev, ...newSales]);
-        }
-      } else {
-        // Transform import data to match the service_requests table schema
-        const serviceData = data.map(item => ({
-          asset_id: item.saleId,
-          title: item.description || 'Service visit',
-          description: item.remarks || '',
-          scheduled_date: item.date || new Date().toISOString(),
-          priority: 'medium',
-          status: 'completed',
-          requested_by: user.id,
-          assigned_to: item.technician || 'Unknown'
-        }));
-
-        const { data: insertedData, error } = await supabase
-          .from('service_requests')
-          .insert(serviceData)
-          .select();
-
-        if (error) {
-          throw error;
-        }
-
-        if (insertedData) {
-          const newRecords: ServiceRecord[] = insertedData.map(record => ({
-            id: record.id,
-            saleId: record.asset_id || "",
-            date: record.scheduled_date ? new Date(record.scheduled_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            technician: record.assigned_to || "Unassigned",
-            description: record.title || "Service visit",
-            partsUsed: "",
-            nextServiceDue: "",
-            remarks: record.description || ''
-          }));
-
-          setServiceRecords(prev => [...prev, ...newRecords]);
-          
-          // Update the sales items with the latest service information
-          for (const record of insertedData) {
-            if (record.asset_id) {
-              await supabase
-                .from('sales')
-                .update({
-                  status: "Serviced",
-                  updated_at: new Date().toISOString()
-                })
-                .eq('id', record.asset_id);
-            }
-          }
-          
-          // Refresh sales data to get the updated service info
-          fetchSalesData();
-        }
-      }
+      const success = await importData(data, type, user.id);
       
-      toast({
-        title: "Import Successful",
-        description: `${data.length} ${type} records have been imported.`
-      });
+      if (success) {
+        // Refresh data after import
+        loadSalesData();
+        loadServiceRecords();
+        
+        toast({
+          title: "Import Successful",
+          description: `${data.length} ${type} records have been imported.`
+        });
+      }
     } catch (error) {
       console.error(`Error importing ${type} data:`, error);
       toast({
@@ -431,9 +211,9 @@ export function useSalesData() {
     serviceRecords,
     loading,
     handleAddSale,
-    handleUpdateSale: handleUpdateSale,
-    handleDeleteSale: handleDeleteSale,
-    handleAddService: handleAddService,
-    handleImportComplete: handleImportItems
+    handleUpdateSale,
+    handleDeleteSale,
+    handleAddService,
+    handleImportComplete
   };
 }

@@ -2,8 +2,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Asset } from "../types";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
+import { 
+  fetchAssets, 
+  createAsset, 
+  updateAsset as updateAssetApi, 
+  deleteAsset as deleteAssetApi 
+} from "../api/assetApi";
 
 export const useAssetData = () => {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -12,40 +17,14 @@ export const useAssetData = () => {
   const { user } = useAuth();
 
   // Fetch assets from Supabase
-  const fetchAssets = useCallback(async () => {
+  const fetchAssetData = useCallback(async () => {
     if (!user?.id) return;
 
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
-        .from('assets')
-        .select('*');
-
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
-        const formattedAssets: Asset[] = data.map(asset => ({
-          id: asset.id,
-          name: asset.name,
-          category: asset.category,
-          serial: asset.serial || '',
-          location: asset.location || '',
-          assignedTo: asset.assigned_to || '',
-          status: asset.status,
-          qrCodeUrl: asset.qr_code_url || '',
-          purchaseDate: asset.purchase_date ? new Date(asset.purchase_date).toISOString().split('T')[0] : undefined,
-          purchaseValue: asset.purchase_value || undefined,
-          currentValue: asset.current_value || undefined,
-          lastMaintenance: asset.last_maintenance ? new Date(asset.last_maintenance).toISOString().split('T')[0] : undefined,
-          nextMaintenance: asset.next_maintenance ? new Date(asset.next_maintenance).toISOString().split('T')[0] : undefined,
-          supabaseId: asset.id
-        }));
-
-        setAssets(formattedAssets);
-      }
+      const formattedAssets = await fetchAssets();
+      setAssets(formattedAssets);
     } catch (error) {
       console.error("Error fetching assets:", error);
       toast({
@@ -61,41 +40,11 @@ export const useAssetData = () => {
   // Add new asset
   const addAsset = async (asset: Omit<Asset, 'id' | 'supabaseId'>) => {
     try {
-      if (!user?.id) return;
+      if (!user?.id) return false;
 
-      console.log("Adding asset:", asset);
-
-      const { data, error } = await supabase
-        .from('assets')
-        .insert({
-          name: asset.name,
-          category: asset.category,
-          serial: asset.serial,
-          location: asset.location,
-          assigned_to: asset.assignedTo,
-          status: asset.status || 'active',
-          qr_code_url: asset.qrCodeUrl,
-          purchase_date: asset.purchaseDate,
-          purchase_value: asset.purchaseValue,
-          current_value: asset.currentValue,
-          last_maintenance: asset.lastMaintenance,
-          next_maintenance: asset.nextMaintenance,
-          created_by: user.id
-        })
-        .select();
-
-      if (error) {
-        console.error("Supabase error:", error);
-        throw error;
-      }
-
-      if (data && data[0]) {
-        const newAsset: Asset = {
-          ...asset,
-          id: data[0].id,
-          supabaseId: data[0].id
-        };
-
+      const newAsset = await createAsset(asset, user.id);
+      
+      if (newAsset) {
         setAssets(prev => [...prev, newAsset]);
         
         toast({
@@ -123,37 +72,20 @@ export const useAssetData = () => {
     try {
       if (!user?.id) return false;
 
-      const { error } = await supabase
-        .from('assets')
-        .update({
-          name: asset.name,
-          category: asset.category,
-          serial: asset.serial,
-          location: asset.location,
-          assigned_to: asset.assignedTo,
-          status: asset.status,
-          qr_code_url: asset.qrCodeUrl,
-          purchase_date: asset.purchaseDate,
-          purchase_value: asset.purchaseValue,
-          current_value: asset.currentValue,
-          last_maintenance: asset.lastMaintenance,
-          next_maintenance: asset.nextMaintenance,
-        })
-        .eq('id', asset.supabaseId || asset.id);
+      const success = await updateAssetApi(asset);
 
-      if (error) {
-        throw error;
+      if (success) {
+        setAssets(prevAssets =>
+          prevAssets.map(prevAsset => (prevAsset.id === asset.id ? asset : prevAsset))
+        );
+
+        toast({
+          title: "Asset Updated",
+          description: `${asset.name} has been updated.`,
+        });
       }
 
-      setAssets(prevAssets =>
-        prevAssets.map(prevAsset => (prevAsset.id === asset.id ? asset : prevAsset))
-      );
-
-      toast({
-        title: "Asset Updated",
-        description: `${asset.name} has been updated.`,
-      });
-      return true;
+      return success;
     } catch (error) {
       console.error("Error updating asset:", error);
       toast({
@@ -169,26 +101,18 @@ export const useAssetData = () => {
     try {
       if (!user?.id) return false;
 
-      // Find the asset to get the Supabase ID
-      const asset = assets.find(a => a.id === id);
-      if (!asset) return false;
-
-      const { error } = await supabase
-        .from('assets')
-        .delete()
-        .eq('id', asset.supabaseId || asset.id);
-
-      if (error) {
-        throw error;
-      }
-
-      setAssets(prevAssets => prevAssets.filter(asset => asset.id !== id));
+      const success = await deleteAssetApi(id, assets);
       
-      toast({
-        title: "Asset Deleted",
-        description: "Asset has been deleted.",
-      });
-      return true;
+      if (success) {
+        setAssets(prevAssets => prevAssets.filter(asset => asset.id !== id));
+        
+        toast({
+          title: "Asset Deleted",
+          description: "Asset has been deleted.",
+        });
+      }
+      
+      return success;
     } catch (error) {
       console.error("Error deleting asset:", error);
       toast({
@@ -201,9 +125,9 @@ export const useAssetData = () => {
 
   useEffect(() => {
     if (user?.id) {
-      fetchAssets();
+      fetchAssetData();
     }
-  }, [user?.id, fetchAssets]);
+  }, [user?.id, fetchAssetData]);
 
   return {
     assets,
@@ -211,6 +135,6 @@ export const useAssetData = () => {
     addAsset,
     updateAsset,
     deleteAsset,
-    fetchAssets,
+    fetchAssets: fetchAssetData,
   };
 };

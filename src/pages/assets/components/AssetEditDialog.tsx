@@ -35,7 +35,7 @@ import { Trash2 } from "lucide-react";
 interface AssetEditDialogProps {
   asset: Asset;
   onSave: (asset: Asset) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void; // Changed from number to string
   onCancel: () => void;
 }
 

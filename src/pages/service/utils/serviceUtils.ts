@@ -50,7 +50,7 @@ async function updateSaleRecordBySerial(serialNumber: string) {
     const { data: saleData } = await supabase
       .from('sales')
       .select('id')
-      .eq('serial', serialNumber)
+      .eq('product_name', serialNumber)  // Changed from serial to product_name
       .maybeSingle();
       
     if (saleData?.id) {

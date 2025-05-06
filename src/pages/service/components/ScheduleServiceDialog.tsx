@@ -1,4 +1,4 @@
-import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -7,10 +7,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ServiceItem } from "../types";
+import { PlusCircle } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Select,
   SelectContent,
@@ -20,112 +23,166 @@ import {
 } from "@/components/ui/select";
 
 interface ScheduleServiceDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSchedule: (data: Omit<ServiceItem, 'id' | 'slaStatus'>) => Promise<boolean>;
+  onSchedule: (service: any) => Promise<boolean>;
 }
 
-export function ScheduleServiceDialog({ open, onOpenChange, onSchedule }: ScheduleServiceDialogProps) {
-  const [formData, setFormData] = useState<Omit<ServiceItem, 'id' | 'slaStatus'>>({
-    client: "",
+export function ScheduleServiceDialog({ onSchedule }: ScheduleServiceDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const [service, setService] = useState({
     product: "",
     serialNo: "",
+    client: "",
     scheduledDate: new Date().toISOString().split('T')[0],
     technician: "",
-    status: "Scheduled"
+    status: "Scheduled",
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setService((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleSelectChange = (field: string, value: string) => {
+    setService((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async () => {
-    const success = await onSchedule(formData);
-    if (success) {
-      onOpenChange(false);
-      
-      // Reset form
-      setFormData({
-        client: "",
-        product: "",
-        serialNo: "",
-        scheduledDate: new Date().toISOString().split('T')[0],
-        technician: "",
-        status: "Scheduled"
+    if (!service.product || !service.client || !service.scheduledDate) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
       });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      // Ensure technician is a string, not UUID
+      const result = await onSchedule(service);
+      if (result) {
+        toast({
+          title: "Service Scheduled",
+          description: `Service for ${service.product} has been scheduled for ${service.scheduledDate}`,
+        });
+        setOpen(false);
+        setService({
+          product: "",
+          serialNo: "",
+          client: "",
+          scheduledDate: new Date().toISOString().split('T')[0],
+          technician: "",
+          status: "Scheduled",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to schedule service",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error scheduling service:", error);
+      toast({
+        title: "Error",
+        description: "Failed to schedule service",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm">
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Schedule Service
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Schedule New Service</DialogTitle>
+          <DialogTitle>Schedule Service</DialogTitle>
           <DialogDescription>
-            Enter the details for the new service appointment.
+            Enter the details for the service appointment.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="client" className="text-right">Client*</Label>
-            <Input
-              id="client"
-              name="client"
-              value={formData.client}
-              onChange={handleInputChange}
-              className="col-span-3"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="product" className="text-right">Product*</Label>
+            <Label htmlFor="product" className="text-right">
+              Product
+            </Label>
             <Input
               id="product"
               name="product"
-              value={formData.product}
-              onChange={handleInputChange}
+              value={service.product}
+              onChange={handleChange}
               className="col-span-3"
+              required
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="serialNo" className="text-right">Serial No.*</Label>
+            <Label htmlFor="serialNo" className="text-right">
+              Serial No
+            </Label>
             <Input
               id="serialNo"
               name="serialNo"
-              value={formData.serialNo}
-              onChange={handleInputChange}
+              value={service.serialNo}
+              onChange={handleChange}
               className="col-span-3"
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="scheduledDate" className="text-right">Date*</Label>
+            <Label htmlFor="client" className="text-right">
+              Client
+            </Label>
+            <Input
+              id="client"
+              name="client"
+              value={service.client}
+              onChange={handleChange}
+              className="col-span-3"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="scheduledDate" className="text-right">
+              Date
+            </Label>
             <Input
               id="scheduledDate"
               name="scheduledDate"
               type="date"
-              value={formData.scheduledDate}
-              onChange={handleInputChange}
+              value={service.scheduledDate}
+              onChange={handleChange}
               className="col-span-3"
+              required
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="technician" className="text-right">Technician</Label>
+            <Label htmlFor="technician" className="text-right">
+              Technician
+            </Label>
             <Input
               id="technician"
               name="technician"
-              value={formData.technician}
-              onChange={handleInputChange}
+              value={service.technician}
+              onChange={handleChange}
               className="col-span-3"
+              placeholder="Enter technician name"
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="status" className="text-right">Status</Label>
-            <Select
-              value={formData.status}
+            <Label htmlFor="status" className="text-right">
+              Status
+            </Label>
+            <Select 
+              value={service.status} 
               onValueChange={(value) => handleSelectChange("status", value)}
             >
               <SelectTrigger className="col-span-3">
@@ -133,18 +190,16 @@ export function ScheduleServiceDialog({ open, onOpenChange, onSchedule }: Schedu
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Scheduled">Scheduled</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="In Progress">In Progress</SelectItem>
+                <SelectItem value="On Hold">On Hold</SelectItem>
+                <SelectItem value="Cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
         <DialogFooter>
-          <Button 
-            type="submit" 
-            onClick={handleSubmit}
-            disabled={!formData.client || !formData.product || !formData.serialNo || !formData.scheduledDate}
-          >
-            Schedule Service
+          <Button type="submit" onClick={handleSubmit} disabled={loading}>
+            {loading ? "Scheduling..." : "Schedule"}
           </Button>
         </DialogFooter>
       </DialogContent>

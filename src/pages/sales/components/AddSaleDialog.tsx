@@ -67,7 +67,15 @@ export function AddSaleDialog({ onSave }: AddSaleDialogProps) {
       formDataToSubmit.warrantyExpiry = warrantyDate.toISOString().split('T')[0];
     }
 
+    // Set serial number to product name if not provided
+    if (!formDataToSubmit.serialNo) {
+      formDataToSubmit.serialNo = `${formDataToSubmit.productName}-${Date.now().toString().slice(-6)}`;
+    }
+
+    // Call the onSave function with the prepared data
     onSave(formDataToSubmit);
+    
+    // Reset form and close dialog
     setIsOpen(false);
     setFormData({
       productName: "",
@@ -99,12 +107,13 @@ export function AddSaleDialog({ onSave }: AddSaleDialogProps) {
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="productName">Product Name</Label>
+              <Label htmlFor="productName">Product Name*</Label>
               <Input
                 id="productName"
                 name="productName"
                 value={formData.productName}
                 onChange={handleInputChange}
+                required
               />
             </div>
             <div className="space-y-2">
@@ -114,18 +123,20 @@ export function AddSaleDialog({ onSave }: AddSaleDialogProps) {
                 name="serialNo"
                 value={formData.serialNo}
                 onChange={handleInputChange}
+                placeholder="Auto-generated if empty"
               />
             </div>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="client">Client Name</Label>
+              <Label htmlFor="client">Client Name*</Label>
               <Input
                 id="client"
                 name="client"
                 value={formData.client}
                 onChange={handleInputChange}
+                required
               />
             </div>
             <div className="space-y-2">
@@ -141,13 +152,14 @@ export function AddSaleDialog({ onSave }: AddSaleDialogProps) {
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="saleDate">Sale Date</Label>
+              <Label htmlFor="saleDate">Sale Date*</Label>
               <Input
                 id="saleDate"
                 name="saleDate"
                 type="date"
                 value={formData.saleDate}
                 onChange={handleInputChange}
+                required
               />
             </div>
             <div className="space-y-2">
@@ -158,6 +170,7 @@ export function AddSaleDialog({ onSave }: AddSaleDialogProps) {
                 type="date"
                 value={formData.warrantyExpiry}
                 onChange={handleInputChange}
+                placeholder="1 year from sale date if empty"
               />
             </div>
           </div>

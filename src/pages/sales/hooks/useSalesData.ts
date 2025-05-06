@@ -105,6 +105,8 @@ export function useSalesData() {
     try {
       if (!user?.id) return;
 
+      console.log("Adding sale with data:", formData);
+
       const { data, error } = await supabase
         .from('sales')
         .insert({
@@ -119,14 +121,17 @@ export function useSalesData() {
         .select();
 
       if (error) {
+        console.error("Supabase insert error:", error);
         throw error;
       }
+
+      console.log("Sale added successfully, response:", data);
 
       if (data && data[0]) {
         const newItem: SalesItem = {
           id: data[0].id,
           productName: data[0].product_name,
-          serialNo: data[0].product_name || `SALES-${data[0].id}`,
+          serialNo: formData.serialNo || `SALES-${data[0].id}`,
           client: data[0].customer_name,
           clientBranch: formData.clientBranch || '',
           clientBranchCode: formData.clientBranchCode || '',
@@ -426,9 +431,9 @@ export function useSalesData() {
     serviceRecords,
     loading,
     handleAddSale,
-    handleUpdateSale,
-    handleDeleteSale,
-    handleAddService,
+    handleUpdateSale: handleUpdateSale,
+    handleDeleteSale: handleDeleteSale,
+    handleAddService: handleAddService,
     handleImportComplete: handleImportItems
   };
 }

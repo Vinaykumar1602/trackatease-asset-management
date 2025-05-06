@@ -24,12 +24,18 @@ import {
 
 interface ScheduleServiceDialogProps {
   onSchedule: (service: any) => Promise<boolean>;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function ScheduleServiceDialog({ onSchedule }: ScheduleServiceDialogProps) {
+export function ScheduleServiceDialog({ onSchedule, onOpenChange }: ScheduleServiceDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    onOpenChange(newOpen);
+  };
 
   const [service, setService] = useState({
     product: "",
@@ -68,7 +74,7 @@ export function ScheduleServiceDialog({ onSchedule }: ScheduleServiceDialogProps
           title: "Service Scheduled",
           description: `Service for ${service.product} has been scheduled for ${service.scheduledDate}`,
         });
-        setOpen(false);
+        handleOpenChange(false);
         setService({
           product: "",
           serialNo: "",
@@ -97,7 +103,7 @@ export function ScheduleServiceDialog({ onSchedule }: ScheduleServiceDialogProps
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button size="sm">
           <PlusCircle className="mr-2 h-4 w-4" />

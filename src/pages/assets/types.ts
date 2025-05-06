@@ -1,6 +1,6 @@
 
 export interface Asset {
-  id: number;
+  id: string; // Changed from number to string to match Supabase UUID
   name: string;
   category: string;
   serial: string;

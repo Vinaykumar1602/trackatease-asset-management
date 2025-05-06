@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Asset } from "../types";
 import { useToast } from "@/components/ui/use-toast";
@@ -138,7 +139,7 @@ export const useAssetData = () => {
           last_maintenance: asset.lastMaintenance,
           next_maintenance: asset.nextMaintenance,
         })
-        .eq('id', asset.id);
+        .eq('id', asset.supabaseId || asset.id);
 
       if (error) {
         throw error;
@@ -164,14 +165,18 @@ export const useAssetData = () => {
   };
 
   // Delete asset
-  const deleteAsset = async (id: number) => {
+  const deleteAsset = async (id: string) => {
     try {
       if (!user?.id) return false;
+
+      // Find the asset to get the Supabase ID
+      const asset = assets.find(a => a.id === id);
+      if (!asset) return false;
 
       const { error } = await supabase
         .from('assets')
         .delete()
-        .eq('id', id);
+        .eq('id', asset.supabaseId || asset.id);
 
       if (error) {
         throw error;

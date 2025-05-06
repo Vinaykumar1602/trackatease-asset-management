@@ -72,7 +72,6 @@ export function ServiceHeader({
       </div>
       
       <ScheduleServiceDialog 
-        open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSchedule={onScheduleService}
       />
